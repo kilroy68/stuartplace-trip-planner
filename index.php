@@ -1,3 +1,8 @@
+<?php
+require_once __DIR__ . '/auth/auth.php';
+auth_require_login();
+$currentUser = auth_current_user();
+?>
 <!doctype html>
 <html lang="en">
 <head>
@@ -34,12 +39,19 @@ p{font-size:clamp(17px,2.2vw,22px);line-height:1.5;color:#425155;max-width:580px
 .blob{position:absolute;border-radius:999px;filter:drop-shadow(0 24px 35px rgba(16,32,36,.16))}.blob.ocean{left:4%;right:4%;bottom:7%;height:132px;background:linear-gradient(135deg,#0f6c81,#6cb0b8);transform:rotate(-7deg)}.blob.sage{left:20%;right:18%;bottom:28%;height:92px;background:linear-gradient(135deg,#7ea17b,#cad8a5);transform:rotate(10deg)}.blob.sand{left:14%;right:8%;bottom:45%;height:118px;background:linear-gradient(135deg,#f5ddae,#d46b38);transform:rotate(-4deg)}
 .road{position:absolute;left:30%;right:18%;bottom:9%;height:315px;border-left:14px solid rgba(255,255,255,.72);border-radius:70% 0 0 0;transform:rotate(20deg);opacity:.95}.road:after{content:"";position:absolute;left:-8px;top:20px;bottom:20px;border-left:3px dashed rgba(16,32,36,.28)}
 .star{position:absolute;width:9px;height:9px;border-radius:50%;background:var(--ocean);box-shadow:0 0 0 8px rgba(15,108,129,.08)}.star.a{left:10%;top:17%}.star.b{right:9%;top:45%;background:var(--orange);box-shadow:0 0 0 8px rgba(212,107,56,.1)}.star.c{left:24%;bottom:12%;background:var(--sage);box-shadow:0 0 0 8px rgba(126,161,123,.12)}
+.auth-bar{position:fixed;top:12px;right:14px;z-index:10;display:flex;gap:9px;align-items:center;background:rgba(255,255,255,.82);border:1px solid rgba(16,32,36,.1);box-shadow:0 10px 28px rgba(16,32,36,.12);border-radius:999px;padding:8px 11px;font-size:12px;color:#516064;backdrop-filter:blur(12px)}.auth-bar a{color:var(--ocean);font-weight:900;text-decoration:none}.auth-bar a:hover{text-decoration:underline}@media(max-width:820px){.auth-bar{position:static;margin:12px auto 0;justify-content:center;flex-wrap:wrap;border-radius:16px}}
 .footer{position:absolute;left:clamp(24px,4vw,42px);right:clamp(24px,4vw,42px);bottom:18px;display:flex;justify-content:space-between;gap:16px;color:rgba(16,32,36,.55);font-size:13px;font-weight:700;z-index:2}.footer a{color:inherit;text-decoration:none}.footer a:hover{color:var(--ocean)}
 @media(max-width:820px){html,body{overflow:auto}.card{grid-template-columns:1fr;min-height:auto;border-radius:26px}.art{min-height:300px;order:-1}.sun{width:96px;height:96px}.footer{position:static;margin:18px 4px 0;flex-direction:column}.shell{display:block}.card:before{display:none}}
 @media(prefers-reduced-motion:no-preference){.sun{animation:float 7s ease-in-out infinite}.blob.sage{animation:float 8s ease-in-out infinite reverse}.blob.sand{animation:float 9s ease-in-out infinite}@keyframes float{0%,100%{translate:0 0}50%{translate:0 -12px}}}
 </style>
 </head>
 <body>
+
+<div class="auth-bar">
+  <span>Signed in as <?= auth_h($currentUser['email'] ?? '') ?></span>
+  <?php if (($currentUser['role'] ?? '') === 'admin'): ?><a href="<?= auth_h(auth_url('/auth/users.php')) ?>">Manage users</a><?php endif; ?>
+  <a href="<?= auth_h(auth_url('/auth/logout.php')) ?>">Sign out</a>
+</div>
 <main class="shell">
   <section class="card" aria-label="Welcome">
     <div class="copy">

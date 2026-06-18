@@ -1,3 +1,8 @@
+<?php
+require_once __DIR__ . '/../auth/auth.php';
+auth_require_login();
+$currentUser = auth_current_user();
+?>
 <!doctype html>
 <html lang="en">
 <head>
@@ -56,6 +61,7 @@ button.primary{background:var(--accent);border-color:var(--accent);color:white}
 .legend{position:absolute;right:14px;bottom:18px;z-index:1000;background:rgba(255,255,255,.96);border:1px solid var(--line);border-radius:16px;box-shadow:0 10px 28px rgba(0,0,0,.14);padding:10px 12px;font-size:12px;color:#445;max-width:340px}
 .legend b{display:block;margin-bottom:5px}.swatch{display:inline-block;width:22px;height:4px;border-radius:4px;margin-right:6px;vertical-align:middle}.swatch.dashed{height:0;border-top:4px dashed #777;background:transparent!important;border-radius:0}
 .leaflet-popup-content{font-size:14px;line-height:1.38;max-width:360px}.popup-title{font-size:17px;font-weight:900;margin-bottom:6px}.popup-stay{margin-bottom:7px}.popup-list{margin:6px 0 0;padding-left:18px}.popup-thumb{width:100%;max-height:150px;object-fit:cover;border-radius:12px;margin:0 0 10px;display:block}.tram-icon,.poi-icon{width:34px!important;height:34px!important;border-radius:50%;display:grid!important;place-items:center;border:3px solid #fff;box-shadow:0 6px 18px rgba(16,32,36,.25);font-size:18px}.tram-icon{background:#d46b38}.poi-icon.avenue-start{background:#2f7d55}.poi-icon.avenue-end{background:#102024}
+.auth-bar{position:fixed;top:10px;right:12px;z-index:2000;display:flex;gap:8px;align-items:center;background:rgba(255,255,255,.94);border:1px solid var(--line);box-shadow:0 8px 26px rgba(0,0,0,.12);border-radius:999px;padding:7px 10px;font-size:12px;color:#516064}.auth-bar a{color:var(--accent);font-weight:900;text-decoration:none}.auth-bar a:hover{text-decoration:underline}@media(max-width:860px){.auth-bar{left:12px;right:12px;justify-content:center;flex-wrap:wrap;border-radius:16px}.layout{padding-top:52px}}
 .mobile-toggle{display:none}
 .empty{padding:24px;color:var(--muted);text-align:center}
 @media(max-width:860px){
@@ -69,6 +75,12 @@ button.primary{background:var(--accent);border-color:var(--accent);color:white}
 </style>
 </head>
 <body>
+
+<div class="auth-bar">
+  <span>Signed in as <?= auth_h($currentUser['email'] ?? '') ?></span>
+  <?php if (($currentUser['role'] ?? '') === 'admin'): ?><a href="<?= auth_h(auth_url('/auth/users.php')) ?>">Manage users</a><?php endif; ?>
+  <a href="<?= auth_h(auth_url('/auth/logout.php')) ?>">Sign out</a>
+</div>
 <div class="app">
   <aside class="sidebar" id="sidebar">
     <section class="hero">
