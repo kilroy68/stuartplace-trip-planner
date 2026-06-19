@@ -27,4 +27,10 @@ return [
 
     // Change this to a long random string before deploying.
     'session_secret' => 'CHANGE_ME_TO_A_LONG_RANDOM_SECRET',
+
+    // Optional: SmugMug API settings for the trip photo sync.
+    // Leave blank until you are ready to connect a SmugMug trip gallery.
+    'smugmug_api_key' => '',
+    'smugmug_api_secret' => '',
+    // Paste the API URI or web URL for the trip gallery in the admin photo settings.
 ];

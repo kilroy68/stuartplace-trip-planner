@@ -38,6 +38,64 @@ function auth_ensure_schema(PDO $pdo): void {
         created_by VARCHAR(190) NULL
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
 
+    $pdo->exec("CREATE TABLE IF NOT EXISTS stop_items (
+        id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+        stop_id INT NOT NULL,
+        item_text TEXT NOT NULL,
+        created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        created_by VARCHAR(190) NULL,
+        updated_at DATETIME NULL,
+        updated_by VARCHAR(190) NULL,
+        INDEX idx_stop_items_stop (stop_id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+
+    $pdo->exec("CREATE TABLE IF NOT EXISTS reservations (
+        id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+        stop_id INT NULL,
+        title VARCHAR(255) NOT NULL,
+        type VARCHAR(80) NOT NULL DEFAULT 'Other',
+        status VARCHAR(40) NOT NULL DEFAULT 'planned',
+        reservation_date DATE NULL,
+        reservation_time TIME NULL,
+        confirmation VARCHAR(190) NULL,
+        address VARCHAR(255) NULL,
+        phone VARCHAR(80) NULL,
+        url VARCHAR(500) NULL,
+        cancellation_deadline DATETIME NULL,
+        cost DECIMAL(10,2) NULL,
+        notes TEXT NULL,
+        created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        created_by VARCHAR(190) NULL,
+        updated_at DATETIME NULL,
+        updated_by VARCHAR(190) NULL,
+        INDEX idx_reservations_stop (stop_id),
+        INDEX idx_reservations_date (reservation_date)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+
+    $pdo->exec("CREATE TABLE IF NOT EXISTS trip_photos (
+        id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+        smugmug_key VARCHAR(190) NULL UNIQUE,
+        title VARCHAR(255) NULL,
+        caption TEXT NULL,
+        thumb_url VARCHAR(500) NOT NULL,
+        photo_url VARCHAR(500) NOT NULL,
+        latitude DECIMAL(10,7) NULL,
+        longitude DECIMAL(10,7) NULL,
+        taken_at DATETIME NULL,
+        stop_id INT NULL,
+        created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        created_by VARCHAR(190) NULL,
+        INDEX idx_trip_photos_location (latitude, longitude),
+        INDEX idx_trip_photos_stop (stop_id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+
+    $pdo->exec("CREATE TABLE IF NOT EXISTS app_settings (
+        setting_key VARCHAR(100) NOT NULL PRIMARY KEY,
+        setting_value TEXT NULL,
+        updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        updated_by VARCHAR(190) NULL
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+
     $c = auth_config();
     foreach (($c['initial_users'] ?? []) as $email => $role) {
         $email = strtolower(trim((string)$email));
