@@ -12,11 +12,13 @@ You do **not** need to create these PHP files manually. They are already in the 
 - `index.php`
 - `california-trip/index.php`
 
-The only file you manually create on Hostinger is:
+The only private file you manually create on Hostinger is now preferably:
+
+- `stuartplace-config.php` one folder above `public_html`
+
+The old fallback still works, but can disappear during Git deployment:
 
 - `auth/config.php`
-
-That file contains secrets, so it is intentionally **not** committed to GitHub.
 
 ## Where is config.example.php?
 
@@ -36,18 +38,15 @@ or, depending on your deployment folder:
 
 1. Open Hostinger hPanel.
 2. Go to File Manager.
-3. Open the website folder for `stuartplace.net`, usually `public_html`.
-4. Open the `auth` folder.
-5. Copy `config.example.php`.
-6. Rename the copy to `config.php`.
-7. Edit `config.php` and fill in:
-   - Google client ID
-   - Google client secret
-   - MySQL database host
-   - MySQL database name
-   - MySQL username
-   - MySQL password
-   - session secret
+3. Open the website folder for `stuartplace.net`.
+4. Open `public_html/auth`.
+5. Copy the working `config.php` file.
+6. Go back up to the folder that contains `public_html`.
+7. Paste the file there.
+8. Rename the pasted file to `stuartplace-config.php`.
+9. Leave `public_html/auth/config.php` in place as a temporary fallback until the new code is deployed and confirmed working.
+
+After this, the private config is outside the Git-deployed folder and should not disappear during future deployments.
 
 ## Do I manually create callback.php?
 

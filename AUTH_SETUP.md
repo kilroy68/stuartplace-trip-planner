@@ -50,13 +50,27 @@ The app creates the `allowed_users` table automatically the first time it connec
 
 ## 3. Create the private config file on Hostinger
 
-On Hostinger, copy:
+Permanent/safe location:
+
+`stuartplace-config.php`
+
+placed one folder above `public_html`, usually:
+
+`domains/stuartplace.net/stuartplace-config.php`
+
+This keeps the file outside the Git-deployed web folder so deployments cannot delete it.
+
+Temporary fallback location, still supported:
+
+`auth/config.php`
+
+Inside Hostinger File Manager, copy:
 
 `auth/config.example.php`
 
-to:
+to the permanent location above as:
 
-`auth/config.php`
+`stuartplace-config.php`
 
 Then fill in:
 
