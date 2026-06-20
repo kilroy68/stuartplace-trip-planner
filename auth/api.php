@@ -115,7 +115,7 @@ function api_smugmug_album_uri_from_gallery(string $gallery, string $apiKey): st
 try {
     if ($action === 'bootstrap') {
         $items = $pdo->query('SELECT id, stop_id, item_text, created_at, created_by FROM stop_items ORDER BY created_at ASC')->fetchAll();
-        $reservations = $pdo->query('SELECT * FROM reservations ORDER BY COALESCE(reservation_date, "9999-12-31"), COALESCE(reservation_time, "23:59:59"), title')->fetchAll();
+        $reservations = $pdo->query('SELECT * FROM reservations ORDER BY COALESCE(stop_id, 999999), COALESCE(reservation_date, "9999-12-31"), COALESCE(reservation_time, "23:59:59"), title')->fetchAll();
         $photos = $pdo->query('SELECT * FROM trip_photos WHERE latitude IS NOT NULL AND longitude IS NOT NULL ORDER BY COALESCE(taken_at, created_at) ASC')->fetchAll();
         $settingsRows = $pdo->query('SELECT setting_key, setting_value FROM app_settings')->fetchAll();
         $settings = [];
