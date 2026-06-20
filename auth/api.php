@@ -20,6 +20,98 @@ function api_input(): array {
     return $_POST;
 }
 
+function api_smugmug_get_json(string $url, string $apiKey): array {
+    $sep = strpos($url, '?') === false ? '?' : '&';
+    $url .= $sep . 'APIKey=' . rawurlencode($apiKey) . '&_accept=application%2Fjson';
+    $ch = curl_init($url);
+    curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 30, CURLOPT_HTTPHEADER => ['Accept: application/json']]);
+    $raw = curl_exec($ch);
+    $http = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $err = curl_error($ch);
+    curl_close($ch);
+    if ($raw === false || $http < 200 || $http >= 300) {
+        throw new RuntimeException($err ?: 'SmugMug API request failed with HTTP ' . $http);
+    }
+    $json = json_decode($raw, true);
+    if (!is_array($json)) {
+        throw new RuntimeException('SmugMug returned an unreadable API response.');
+    }
+    return $json;
+}
+
+function api_find_album_uri($value): ?string {
+    if (is_string($value) && preg_match('~^/api/v2/album/[A-Za-z0-9]+~', $value, $m)) {
+        return $m[0];
+    }
+    if (is_array($value)) {
+        foreach ($value as $child) {
+            $found = api_find_album_uri($child);
+            if ($found !== null) {
+                return $found;
+            }
+        }
+    }
+    return null;
+}
+
+function api_smugmug_album_uri_from_gallery(string $gallery, string $apiKey): string {
+    $gallery = trim($gallery);
+    if ($gallery === '') {
+        throw new RuntimeException('Save the SmugMug gallery URL first.');
+    }
+    if (preg_match('~/api/v2/album/([A-Za-z0-9]+)~', $gallery, $m) || preg_match('~/album/([A-Za-z0-9]+)~', $gallery, $m)) {
+        return '/api/v2/album/' . $m[1];
+    }
+    if (preg_match('~/(?:n-|node/)([A-Za-z0-9]+)~', $gallery, $m)) {
+        $node = api_smugmug_get_json('https://api.smugmug.com/api/v2/node/' . rawurlencode($m[1]), $apiKey);
+        $uri = api_find_album_uri($node);
+        if ($uri !== null) {
+            return $uri;
+        }
+    }
+
+    $parts = parse_url($gallery);
+    $host = strtolower((string)($parts['host'] ?? ''));
+    $path = (string)($parts['path'] ?? '');
+    if ($host === '' || $path === '') {
+        throw new RuntimeException('Paste the full SmugMug gallery URL, not just the gallery name.');
+    }
+
+    $nickname = '';
+    if (preg_match('~^([a-z0-9-]+)\.smugmug\.com$~i', $host, $m)) {
+        $nickname = $m[1];
+    } elseif (preg_match('~^www\.([a-z0-9-]+)\.smugmug\.com$~i', $host, $m)) {
+        $nickname = $m[1];
+    }
+    if ($nickname === '') {
+        throw new RuntimeException('Please paste the normal SmugMug gallery URL, like https://yourname.smugmug.com/Folder/Gallery. Custom domains are not supported for sync yet.');
+    }
+
+    // If someone pasted a photo URL inside the gallery, strip the /i-... photo part.
+    $path = preg_replace('~/i-[A-Za-z0-9]+.*$~', '', $path) ?: $path;
+    $path = '/' . trim($path, '/');
+
+    $lookupBase = 'https://api.smugmug.com/api/v2/user/' . rawurlencode($nickname) . '!urlpathlookup';
+    $attempts = [
+        $lookupBase . '?urlpath=' . rawurlencode($path),
+        $lookupBase . '?UrlPath=' . rawurlencode($path),
+    ];
+    $lastError = '';
+    foreach ($attempts as $url) {
+        try {
+            $json = api_smugmug_get_json($url, $apiKey);
+            $uri = api_find_album_uri($json);
+            if ($uri !== null) {
+                return $uri;
+            }
+            $lastError = 'SmugMug URL lookup worked, but did not return an album for path ' . $path . '.';
+        } catch (Throwable $e) {
+            $lastError = $e->getMessage();
+        }
+    }
+    throw new RuntimeException('Could not resolve that SmugMug gallery URL. ' . $lastError);
+}
+
 try {
     if ($action === 'bootstrap') {
         $items = $pdo->query('SELECT id, stop_id, item_text, created_at, created_by FROM stop_items ORDER BY created_at ASC')->fetchAll();
@@ -145,26 +237,11 @@ try {
         $gallery = $pdo->query('SELECT setting_value FROM app_settings WHERE setting_key = "smugmug_gallery"')->fetchColumn();
         $apiKey = trim((string)($c['smugmug_api_key'] ?? ''));
         if (!$gallery || $apiKey === '') {
-            auth_json_response(['ok' => false, 'error' => 'Save a SmugMug gallery URL and add smugmug_api_key to auth/config.php first.'], 400);
+            auth_json_response(['ok' => false, 'error' => 'Save a SmugMug gallery URL and add smugmug_api_key to stuartplace-config.php first.'], 400);
         }
-        if (preg_match('~/album/([A-Za-z0-9]+)~', $gallery, $m)) {
-            $albumKey = $m[1];
-        } elseif (preg_match('~/([A-Za-z0-9]+)(?:/)?$~', parse_url($gallery, PHP_URL_PATH) ?: '', $m)) {
-            $albumKey = $m[1];
-        } else {
-            auth_json_response(['ok' => false, 'error' => 'Could not determine SmugMug album key from the gallery URL.'], 400);
-        }
-        $endpoint = 'https://api.smugmug.com/api/v2/album/' . rawurlencode($albumKey) . '!images?_accept=application%2Fjson';
-        $ch = curl_init($endpoint);
-        curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 30, CURLOPT_HTTPHEADER => ['Accept: application/json', 'X-SmugMug-APIKey: ' . $apiKey]]);
-        $raw = curl_exec($ch);
-        $http = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        $err = curl_error($ch);
-        curl_close($ch);
-        if ($raw === false || $http < 200 || $http >= 300) {
-            auth_json_response(['ok' => false, 'error' => $err ?: 'SmugMug API request failed with HTTP ' . $http], 502);
-        }
-        $json = json_decode($raw, true);
+        $albumUri = api_smugmug_album_uri_from_gallery((string)$gallery, $apiKey);
+        $endpoint = 'https://api.smugmug.com' . $albumUri . '!images?count=500';
+        $json = api_smugmug_get_json($endpoint, $apiKey);
         $images = $json['Response']['AlbumImage'] ?? $json['Response']['AlbumImages'] ?? [];
         $count = 0;
         $stmt = $pdo->prepare('INSERT INTO trip_photos (smugmug_key,title,caption,thumb_url,photo_url,latitude,longitude,taken_at,created_by) VALUES (?,?,?,?,?,?,?,?,?) ON DUPLICATE KEY UPDATE title=VALUES(title), caption=VALUES(caption), thumb_url=VALUES(thumb_url), photo_url=VALUES(photo_url), latitude=VALUES(latitude), longitude=VALUES(longitude), taken_at=VALUES(taken_at)');
