@@ -89,4 +89,5 @@ $_SESSION['user'] = [
     'role' => $user['role'],
 ];
 unset($_SESSION['oauth_state'], $_SESSION['oauth_next']);
+auth_refresh_session_cookie();
 auth_redirect($next);

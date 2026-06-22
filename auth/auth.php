@@ -1,20 +1,74 @@
 <?php
 require_once __DIR__ . '/db.php';
 
-function auth_start_session(): void {
-    if (session_status() === PHP_SESSION_ACTIVE) {
-        return;
+function auth_session_lifetime_seconds(): int {
+    $days = (int)(auth_config()['session_lifetime_days'] ?? 30);
+    if ($days < 1) {
+        $days = 30;
     }
+    if ($days > 365) {
+        $days = 365;
+    }
+    return $days * 86400;
+}
+
+function auth_session_cookie_base(): array {
     $secure = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off');
-    session_set_cookie_params([
-        'lifetime' => 0,
+    return [
         'path' => '/',
         'domain' => '',
         'secure' => $secure,
         'httponly' => true,
         'samesite' => 'Lax',
-    ]);
+    ];
+}
+
+function auth_session_cookie_params(): array {
+    return ['lifetime' => auth_session_lifetime_seconds()] + auth_session_cookie_base();
+}
+
+function auth_session_cookie_options(?int $expires = null): array {
+    return ['expires' => $expires ?? (time() + auth_session_lifetime_seconds())] + auth_session_cookie_base();
+}
+
+function auth_session_save_path(): ?string {
+    $configured = auth_config()['session_save_path'] ?? '';
+    $path = is_string($configured) && trim($configured) !== ''
+        ? trim($configured)
+        : dirname(__DIR__, 2) . '/stuartplace-sessions';
+    if (!is_dir($path)) {
+        @mkdir($path, 0700, true);
+    }
+    return is_dir($path) && is_writable($path) ? $path : null;
+}
+
+function auth_refresh_session_cookie(): void {
+    if (session_status() !== PHP_SESSION_ACTIVE || session_id() === '') {
+        return;
+    }
+    setcookie(session_name(), session_id(), auth_session_cookie_options());
+}
+
+function auth_clear_session_cookie(): void {
+    setcookie(session_name(), '', auth_session_cookie_options(time() - 42000));
+}
+
+function auth_start_session(): void {
+    if (session_status() === PHP_SESSION_ACTIVE) {
+        auth_refresh_session_cookie();
+        return;
+    }
+    $lifetime = auth_session_lifetime_seconds();
+    ini_set('session.gc_maxlifetime', (string)$lifetime);
+    ini_set('session.cookie_lifetime', (string)$lifetime);
+    ini_set('session.use_strict_mode', '1');
+    $savePath = auth_session_save_path();
+    if ($savePath !== null) {
+        session_save_path($savePath);
+    }
+    session_set_cookie_params(auth_session_cookie_params());
     session_start();
+    auth_refresh_session_cookie();
 }
 
 auth_start_session();

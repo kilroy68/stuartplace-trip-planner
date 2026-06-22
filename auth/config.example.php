@@ -28,6 +28,11 @@ return [
     // Change this to a long random string before deploying.
     'session_secret' => 'CHANGE_ME_TO_A_LONG_RANDOM_SECRET',
 
+    // Keep users logged in for 30 days. Sessions are stored outside public_html by default
+    // in ../stuartplace-sessions so shared-host PHP garbage collection does not log users out early.
+    'session_lifetime_days' => 30,
+    'session_save_path' => '',
+
     // Optional: SmugMug API settings for the trip photo sync.
     // Leave blank until you are ready to connect a SmugMug trip gallery.
     'smugmug_api_key' => '',
