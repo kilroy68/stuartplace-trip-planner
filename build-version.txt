@@ -1,1 +1,1 @@
-mobile-popup-wide1
+mobile-popup-margin1
