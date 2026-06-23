@@ -30,6 +30,7 @@ return [
 
     // Keep users logged in for 30 days. Sessions are stored outside public_html by default
     // in ../stuartplace-sessions so shared-host PHP garbage collection does not log users out early.
+    // A separate secure remember-me token is also stored in MySQL so login survives PHP session cleanup.
     'session_lifetime_days' => 30,
     'session_save_path' => '',
 

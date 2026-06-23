@@ -90,4 +90,5 @@ $_SESSION['user'] = [
 ];
 unset($_SESSION['oauth_state'], $_SESSION['oauth_next']);
 auth_refresh_session_cookie();
+auth_issue_remember_token($email);
 auth_redirect($next);

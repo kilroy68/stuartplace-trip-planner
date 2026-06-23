@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/auth.php';
 auth_start_session();
+auth_revoke_remember_token();
 $_SESSION = [];
 if (ini_get('session.use_cookies')) {
     auth_clear_session_cookie();

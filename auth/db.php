@@ -96,6 +96,20 @@ function auth_ensure_schema(PDO $pdo): void {
         updated_by VARCHAR(190) NULL
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
 
+    $pdo->exec("CREATE TABLE IF NOT EXISTS auth_tokens (
+        id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+        selector CHAR(24) NOT NULL UNIQUE,
+        token_hash CHAR(64) NOT NULL,
+        email VARCHAR(190) NOT NULL,
+        expires_at DATETIME NOT NULL,
+        created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        last_used_at DATETIME NULL,
+        user_agent VARCHAR(255) NULL,
+        ip_address VARCHAR(64) NULL,
+        INDEX idx_auth_tokens_email (email),
+        INDEX idx_auth_tokens_expires (expires_at)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+
     $c = auth_config();
     foreach (($c['initial_users'] ?? []) as $email => $role) {
         $email = strtolower(trim((string)$email));
