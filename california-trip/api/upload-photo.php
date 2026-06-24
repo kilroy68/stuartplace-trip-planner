@@ -95,6 +95,30 @@ function smug_album_uri_from_gallery(string $gallery, string $apiKey): string {
     throw new RuntimeException('Could not resolve the configured SmugMug gallery URL.');
 }
 
+function smug_rebuild_trip_photos(PDO $pdo, string $albumUri, string $apiKey, string $createdBy): int {
+    $endpoint = 'https://api.smugmug.com' . $albumUri . '!images?count=500';
+    $json = smug_json_get($endpoint, $apiKey);
+    $images = $json['Response']['AlbumImage'] ?? $json['Response']['AlbumImages'] ?? [];
+    $count = 0;
+    $stmt = $pdo->prepare('INSERT INTO trip_photos (smugmug_key,title,caption,thumb_url,photo_url,latitude,longitude,taken_at,created_by) VALUES (?,?,?,?,?,?,?,?,?) ON DUPLICATE KEY UPDATE title=VALUES(title), caption=VALUES(caption), thumb_url=VALUES(thumb_url), photo_url=VALUES(photo_url), latitude=VALUES(latitude), longitude=VALUES(longitude), taken_at=VALUES(taken_at)');
+    $pdo->beginTransaction();
+    $pdo->exec('DELETE FROM trip_photos');
+    foreach ($images as $img) {
+        $lat = $img['Latitude'] ?? $img['Lat'] ?? null;
+        $lng = $img['Longitude'] ?? $img['Lon'] ?? null;
+        if ($lat === null || $lng === null || $lat === '' || $lng === '') { continue; }
+        $key = $img['ImageKey'] ?? $img['Key'] ?? md5(json_encode($img));
+        $thumb = trim((string)($img['ThumbnailUrl'] ?? $img['ThumbUrl'] ?? ''));
+        $photoUrl = trim((string)($img['WebUri'] ?? $img['ArchivedUri'] ?? ''));
+        if ($thumb === '') { $thumb = $photoUrl; }
+        if ($photoUrl === '' || $thumb === '') { continue; }
+        $stmt->execute([$key, $img['Title'] ?? $img['FileName'] ?? 'Trip photo', $img['Caption'] ?? null, $thumb, $photoUrl, (float)$lat, (float)$lng, $img['DateTimeOriginal'] ?? $img['Date'] ?? null, $createdBy]);
+        $count++;
+    }
+    $pdo->commit();
+    return $count;
+}
+
 function oauth_percent_encode(string $value): string {
     return str_replace('%7E', '~', rawurlencode($value));
 }
@@ -238,8 +262,14 @@ $imageUri = (string)($image['ImageUri'] ?? ($image['AlbumImageUri'] ?? ''));
 $smugKey = $imageUri !== '' ? $imageUri : md5($photoURL . $filename . microtime(true));
 $thumbURL = $photoURL !== '' ? $photoURL : $gallery;
 
-$stmt = $pdo->prepare('INSERT INTO trip_photos (smugmug_key,title,caption,thumb_url,photo_url,latitude,longitude,taken_at,stop_id,created_by) VALUES (?,?,?,?,?,?,?,?,?,?) ON DUPLICATE KEY UPDATE title=VALUES(title), caption=VALUES(caption), thumb_url=VALUES(thumb_url), photo_url=VALUES(photo_url), latitude=VALUES(latitude), longitude=VALUES(longitude), taken_at=VALUES(taken_at), stop_id=VALUES(stop_id)');
-$stmt->execute([$smugKey, $title, $caption, $thumbURL, $photoURL ?: $gallery, $lat, $lng, gmdate('Y-m-d H:i:s'), $stopID, $caller]);
+$imported = null;
+$syncWarning = null;
+try {
+    $imported = smug_rebuild_trip_photos($pdo, $albumUri, $apiKey, $caller);
+} catch (Throwable $e) {
+    if ($pdo->inTransaction()) { $pdo->rollBack(); }
+    $syncWarning = $e->getMessage();
+}
 
 mobile_json_response([
     'ok' => true,
@@ -248,4 +278,7 @@ mobile_json_response([
     'photoURL' => $photoURL,
     'latitude' => $lat,
     'longitude' => $lng,
+    'rebuilt' => $imported !== null,
+    'imported' => $imported,
+    'syncWarning' => $syncWarning,
 ]);

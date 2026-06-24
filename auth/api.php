@@ -245,21 +245,28 @@ try {
         $images = $json['Response']['AlbumImage'] ?? $json['Response']['AlbumImages'] ?? [];
         $count = 0;
         $stmt = $pdo->prepare('INSERT INTO trip_photos (smugmug_key,title,caption,thumb_url,photo_url,latitude,longitude,taken_at,created_by) VALUES (?,?,?,?,?,?,?,?,?) ON DUPLICATE KEY UPDATE title=VALUES(title), caption=VALUES(caption), thumb_url=VALUES(thumb_url), photo_url=VALUES(photo_url), latitude=VALUES(latitude), longitude=VALUES(longitude), taken_at=VALUES(taken_at)');
+        $pdo->beginTransaction();
+        $pdo->exec('DELETE FROM trip_photos');
         foreach ($images as $img) {
             $lat = $img['Latitude'] ?? $img['Lat'] ?? null;
             $lng = $img['Longitude'] ?? $img['Lon'] ?? null;
             if ($lat === null || $lng === null || $lat === '' || $lng === '') { continue; }
             $key = $img['ImageKey'] ?? $img['Key'] ?? md5(json_encode($img));
-            $thumb = $img['ThumbnailUrl'] ?? $img['ThumbUrl'] ?? $img['Uris']['ImageSizes']['Uri'] ?? '';
-            $photoUrl = $img['WebUri'] ?? $img['ArchivedUri'] ?? $img['Uri'] ?? $gallery;
+            $thumb = trim((string)($img['ThumbnailUrl'] ?? $img['ThumbUrl'] ?? ''));
+            $photoUrl = trim((string)($img['WebUri'] ?? $img['ArchivedUri'] ?? ''));
             if ($thumb === '') { $thumb = $photoUrl; }
+            if ($photoUrl === '' || $thumb === '') { continue; }
             $stmt->execute([$key, $img['Title'] ?? $img['FileName'] ?? 'Trip photo', $img['Caption'] ?? null, $thumb, $photoUrl, (float)$lat, (float)$lng, $img['DateTimeOriginal'] ?? $img['Date'] ?? null, $user['email']]);
             $count++;
         }
-        auth_json_response(['ok' => true, 'imported' => $count]);
+        $pdo->commit();
+        auth_json_response(['ok' => true, 'imported' => $count, 'rebuilt' => true]);
     }
 
     auth_json_response(['ok' => false, 'error' => 'Unknown action.'], 404);
 } catch (Throwable $e) {
+    if (isset($pdo) && $pdo instanceof PDO && $pdo->inTransaction()) {
+        $pdo->rollBack();
+    }
     auth_json_response(['ok' => false, 'error' => $e->getMessage()], 500);
 }
