@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/../../auth/bootstrap.php';
+require_once __DIR__ . '/../../auth/db.php';
 
 function mobile_trip_json_response(array $payload, int $status = 200): never {
     http_response_code($status);
@@ -68,6 +69,23 @@ $trip = json_decode($raw ?: '', true);
 if (!is_array($trip)) {
     mobile_trip_json_response(['ok' => false, 'error' => 'Trip data is invalid.'], 500);
 }
+
+$mobileExtras = [
+    'items' => [],
+    'reservations' => [],
+    'photos' => [],
+];
+try {
+    $pdo = auth_db();
+    $mobileExtras['items'] = $pdo->query('SELECT id, stop_id, item_text, created_at, created_by FROM stop_items ORDER BY created_at ASC')->fetchAll();
+    $mobileExtras['reservations'] = $pdo->query('SELECT id, stop_id, title, type, status, reservation_date, reservation_time, confirmation, address, phone, url, cancellation_deadline, cost, notes FROM reservations ORDER BY COALESCE(stop_id, 999999), COALESCE(reservation_date, "9999-12-31"), COALESCE(reservation_time, "23:59:59"), title')->fetchAll();
+    $mobileExtras['photos'] = $pdo->query('SELECT id, stop_id, title, caption, thumb_url, photo_url, latitude, longitude, taken_at FROM trip_photos WHERE latitude IS NOT NULL AND longitude IS NOT NULL ORDER BY COALESCE(taken_at, created_at) ASC')->fetchAll();
+} catch (Throwable $e) {
+    // The itinerary itself should remain available even if optional planning tables are temporarily unavailable.
+    $mobileExtras['extrasError'] = $e->getMessage();
+}
+
+$trip = array_merge($trip, $mobileExtras);
 
 mobile_trip_json_response([
     'ok' => true,
