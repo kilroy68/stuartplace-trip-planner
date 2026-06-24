@@ -45,5 +45,9 @@ return [
     // Leave blank until you are ready to connect a SmugMug trip gallery.
     'smugmug_api_key' => '',
     'smugmug_api_secret' => '',
+    // Required only for uploading photos from the iPhone app.
+    // These are OAuth 1.0a access credentials for the SmugMug account that owns the gallery.
+    'smugmug_access_token' => '',
+    'smugmug_access_token_secret' => '',
     // Paste the API URI or web URL for the trip gallery in the admin photo settings.
 ];
