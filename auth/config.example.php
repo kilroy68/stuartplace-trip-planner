@@ -34,6 +34,13 @@ return [
     'session_lifetime_days' => 30,
     'session_save_path' => '',
 
+    // Mobile app API tokens. The iOS app sends X-Stuartplace-Client plus
+    // Authorization: Bearer <token>; store only sha256 hashes here.
+    // Generate a token with: php -r 'echo bin2hex(random_bytes(32)), PHP_EOL;'
+    'mobile_api_tokens' => [
+        'california-trip-ios' => 'sha256:REPLACE_WITH_SHA256_OF_APP_TOKEN',
+    ],
+
     // Optional: SmugMug API settings for the trip photo sync.
     // Leave blank until you are ready to connect a SmugMug trip gallery.
     'smugmug_api_key' => '',
