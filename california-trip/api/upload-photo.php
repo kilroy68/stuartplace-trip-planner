@@ -191,6 +191,18 @@ if ($accessToken === '' || $accessSecret === '') {
     mobile_json_response(['ok' => false, 'error' => 'SmugMug is not connected. Sign in as an admin and open /california-trip/api/smugmug-connect.php to authorize uploads.'], 500);
 }
 
+$gallery = (string)$pdo->query('SELECT setting_value FROM app_settings WHERE setting_key = "smugmug_gallery"')->fetchColumn();
+$albumUri = smug_album_uri_from_gallery($gallery, $apiKey);
+if (($_POST['action'] ?? '') === 'rebuild') {
+    try {
+        $imported = smug_rebuild_trip_photos($pdo, $albumUri, $apiKey, $caller);
+        mobile_json_response(['ok' => true, 'caller' => $caller, 'rebuilt' => true, 'imported' => $imported]);
+    } catch (Throwable $e) {
+        if ($pdo->inTransaction()) { $pdo->rollBack(); }
+        mobile_json_response(['ok' => false, 'error' => $e->getMessage()], 500);
+    }
+}
+
 if (!isset($_FILES['photo']) || !is_uploaded_file($_FILES['photo']['tmp_name'])) {
     mobile_json_response(['ok' => false, 'error' => 'No photo was uploaded.'], 400);
 }
@@ -207,8 +219,6 @@ if (!in_array($mime, ['image/jpeg', 'image/png', 'image/heic', 'image/heif'], tr
     mobile_json_response(['ok' => false, 'error' => 'Only JPEG, PNG, and HEIC images are supported.'], 400);
 }
 
-$gallery = (string)$pdo->query('SELECT setting_value FROM app_settings WHERE setting_key = "smugmug_gallery"')->fetchColumn();
-$albumUri = smug_album_uri_from_gallery($gallery, $apiKey);
 $filename = basename((string)($file['name'] ?? 'trip-photo.jpg')) ?: 'trip-photo.jpg';
 $title = trim((string)($_POST['title'] ?? '')) ?: pathinfo($filename, PATHINFO_FILENAME);
 $caption = trim((string)($_POST['caption'] ?? '')) ?: null;
