@@ -41,12 +41,13 @@ return [
         'california-trip-ios' => 'sha256:REPLACE_WITH_SHA256_OF_APP_TOKEN',
     ],
 
-    // Optional: SmugMug API settings for the trip photo sync.
+    // Required for SmugMug photo sync/upload.
     // Leave blank until you are ready to connect a SmugMug trip gallery.
     'smugmug_api_key' => '',
     'smugmug_api_secret' => '',
-    // Required only for uploading photos from the iPhone app.
-    // These are OAuth 1.0a access credentials for the SmugMug account that owns the gallery.
+    // Upload authorization is normally created by signing in as an admin and opening:
+    // https://www.stuartplace.net/california-trip/api/smugmug-connect.php
+    // Optional fallback: paste OAuth 1.0a access credentials here instead of storing them in MySQL.
     'smugmug_access_token' => '',
     'smugmug_access_token_secret' => '',
     // Paste the API URI or web URL for the trip gallery in the admin photo settings.

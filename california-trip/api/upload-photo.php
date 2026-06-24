@@ -152,10 +152,19 @@ $caller = mobile_authenticated_client();
 $config = auth_config();
 $apiKey = trim((string)($config['smugmug_api_key'] ?? ''));
 $apiSecret = trim((string)($config['smugmug_api_secret'] ?? ''));
-$accessToken = trim((string)($config['smugmug_access_token'] ?? ''));
-$accessSecret = trim((string)($config['smugmug_access_token_secret'] ?? ''));
-if ($apiKey === '' || $apiSecret === '' || $accessToken === '' || $accessSecret === '') {
-    mobile_json_response(['ok' => false, 'error' => 'SmugMug upload is not configured. Add smugmug_api_key, smugmug_api_secret, smugmug_access_token, and smugmug_access_token_secret to the private config.'], 500);
+$pdo = auth_db();
+$settingsStmt = $pdo->query('SELECT setting_key, setting_value FROM app_settings WHERE setting_key IN ("smugmug_access_token", "smugmug_access_token_secret")');
+$smugSettings = [];
+foreach ($settingsStmt->fetchAll() as $row) {
+    $smugSettings[(string)$row['setting_key']] = (string)$row['setting_value'];
+}
+$accessToken = trim((string)($config['smugmug_access_token'] ?? ($smugSettings['smugmug_access_token'] ?? '')));
+$accessSecret = trim((string)($config['smugmug_access_token_secret'] ?? ($smugSettings['smugmug_access_token_secret'] ?? '')));
+if ($apiKey === '' || $apiSecret === '') {
+    mobile_json_response(['ok' => false, 'error' => 'SmugMug upload is not configured. Add smugmug_api_key and smugmug_api_secret to the private config.'], 500);
+}
+if ($accessToken === '' || $accessSecret === '') {
+    mobile_json_response(['ok' => false, 'error' => 'SmugMug is not connected. Sign in as an admin and open /california-trip/api/smugmug-connect.php to authorize uploads.'], 500);
 }
 
 if (!isset($_FILES['photo']) || !is_uploaded_file($_FILES['photo']['tmp_name'])) {
@@ -174,7 +183,6 @@ if (!in_array($mime, ['image/jpeg', 'image/png', 'image/heic', 'image/heif'], tr
     mobile_json_response(['ok' => false, 'error' => 'Only JPEG, PNG, and HEIC images are supported.'], 400);
 }
 
-$pdo = auth_db();
 $gallery = (string)$pdo->query('SELECT setting_value FROM app_settings WHERE setting_key = "smugmug_gallery"')->fetchColumn();
 $albumUri = smug_album_uri_from_gallery($gallery, $apiKey);
 $filename = basename((string)($file['name'] ?? 'trip-photo.jpg')) ?: 'trip-photo.jpg';
