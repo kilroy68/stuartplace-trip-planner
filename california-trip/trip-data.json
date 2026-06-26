@@ -173,17 +173,16 @@
     },
     {
       "id": 6,
-      "title": "7–10. Yosemite area",
+      "title": "7–9. Yosemite area",
       "latitude": 37.8651,
       "longitude": -119.5383,
-      "stay": "4 nights",
+      "stay": "3 nights",
       "activities": [
         "Tunnel View.",
         "Yosemite Valley: El Capitan Meadow, Cook's Meadow, Valley viewpoints.",
         "Lower Yosemite Fall area if conditions and mobility allow.",
-        "Glacier Point and Washburn Point if road is open.",
-        "Mariposa Grove shuttle/boardwalk area if feasible.",
-        "Tioga Road, Olmsted Point, Tenaya Lake, Tuolumne Meadows if open."
+        "Use one full day for Glacier Point and Washburn Point if the road is open.",
+        "Use the other full day for Yosemite Valley, Mariposa Grove, or Tioga Road depending on conditions."
       ],
       "categories": [
         "Yosemite",
@@ -201,7 +200,7 @@
     },
     {
       "id": 7,
-      "title": "11. Half Moon Bay or Santa Cruz",
+      "title": "10. Half Moon Bay or Santa Cruz",
       "latitude": 37.4636,
       "longitude": -122.4286,
       "stay": "1 night",
@@ -220,8 +219,8 @@
         "Waterfront",
         "Hiking"
       ],
-      "date": "2026-09-30",
-      "dateLabel": "Sep 30",
+      "date": "2026-09-29",
+      "dateLabel": "Sep 29",
       "avgHighF": 71,
       "avgLowF": 54,
       "kind": "stop",
@@ -231,7 +230,7 @@
     },
     {
       "id": 8,
-      "title": "12–14. Monterey / Pacific Grove / Carmel",
+      "title": "11–13. Monterey / Pacific Grove / Carmel",
       "latitude": 36.6002,
       "longitude": -121.8947,
       "stay": "3 nights",
@@ -253,8 +252,8 @@
         "Wine",
         "Hiking"
       ],
-      "date": "2026-10-01",
-      "dateLabel": "Oct 1",
+      "date": "2026-09-30",
+      "dateLabel": "Sep 30",
       "avgHighF": 69,
       "avgLowF": 56,
       "kind": "stop",
@@ -264,10 +263,10 @@
     },
     {
       "id": 9,
-      "title": "15. Cambria / San Simeon / Morro Bay",
+      "title": "14–15. Cambria / San Simeon / Morro Bay",
       "latitude": 35.5641,
       "longitude": -121.0808,
-      "stay": "1 night",
+      "stay": "2 nights",
       "activities": [
         "Big Sur drive southbound.",
         "Bixby Bridge pullout.",
@@ -276,7 +275,8 @@
         "Ragged Point.",
         "Piedras Blancas elephant seal rookery.",
         "Hearst Castle if booked and mobility works.",
-        "Moonstone Beach boardwalk in Cambria."
+        "Moonstone Beach boardwalk in Cambria.",
+        "Use the extra full day for Hearst Castle, Cambria, San Simeon, Morro Bay, or a slower recovery day after Big Sur."
       ],
       "categories": [
         "Viewpoints",
@@ -284,8 +284,8 @@
         "Culture",
         "Easy walks"
       ],
-      "date": "2026-10-04",
-      "dateLabel": "Oct 4",
+      "date": "2026-10-03",
+      "dateLabel": "Oct 3",
       "avgHighF": 75,
       "avgLowF": 58,
       "kind": "stop",
@@ -47262,7 +47262,7 @@
     },
     {
       "id": 8,
-      "name": "Day 15: Carmel to Cambria",
+      "name": "Day 14: Carmel to Cambria",
       "points": [
         {
           "latitude": 36.555139,
