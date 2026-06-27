@@ -136,7 +136,7 @@ function mobile_trip_apply_lodging_stop_locations(array $trip, array $reservatio
                 }
                 foreach ($originalStopLocations as $stopIndex => $original) {
                     $isEndpoint = $pointIndex === 0 || $pointIndex === $lastPointIndex;
-                    $tolerance = $isEndpoint ? 0.03 : 0.00001;
+                    $tolerance = $isEndpoint ? 0.20 : 0.00001;
                     if (abs((float)$point[$latKey] - $original[0]) < $tolerance && abs((float)$point[$lngKey] - $original[1]) < $tolerance) {
                         $trip['segments'][$segmentIndex]['points'][$pointIndex][$latKey] = (float)$trip['stops'][$stopIndex]['latitude'];
                         $trip['segments'][$segmentIndex]['points'][$pointIndex][$lngKey] = (float)$trip['stops'][$stopIndex]['longitude'];

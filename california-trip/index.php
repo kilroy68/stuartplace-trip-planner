@@ -283,15 +283,16 @@ function updateStatus(){
   if(errors===0){statusEl.textContent=`Mapbox routes loaded: ${mapboxRoutes.length} segments, about ${totalMiles} miles / ${totalHours} driving hours. Planning map only; verify closures and navigation before driving.`;}
   else{statusEl.textContent=`Mapbox routes loaded with ${errors} fallback segment(s). Verify the affected route legs before driving.`;}
 }
-function effectiveRoutePointForOriginal(p){
+function effectiveRoutePointForOriginal(p,isEndpoint=false){
+  const tolerance=isEndpoint?0.20:0.00001;
   for(let i=0;i<originalStopLocations.length;i++){
     const o=originalStopLocations[i];
-    if(Math.abs(Number(p[0])-o[0])<0.00001 && Math.abs(Number(p[1])-o[1])<0.00001) return [Number(stops[i][1]),Number(stops[i][2])];
+    if(Math.abs(Number(p[0])-o[0])<tolerance && Math.abs(Number(p[1])-o[1])<tolerance) return [Number(stops[i][1]),Number(stops[i][2])];
   }
   return [Number(p[0]),Number(p[1])];
 }
 function applyLodgingRouteWaypoints(){
-  segments.forEach((seg,idx)=>{ seg[1]=originalSegments[idx][1].map(effectiveRoutePointForOriginal); });
+  segments.forEach((seg,idx)=>{ const last=originalSegments[idx][1].length-1; seg[1]=originalSegments[idx][1].map((p,pidx)=>effectiveRoutePointForOriginal(p,pidx===0||pidx===last)); });
 }
 async function fetchMapboxRouteForSegment(seg, idx){
   const coords=seg[1].map(p=>`${p[1]},${p[0]}`).join(';');
