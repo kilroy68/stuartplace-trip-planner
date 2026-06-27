@@ -59,6 +59,8 @@ function auth_ensure_schema(PDO $pdo): void {
         reservation_time TIME NULL,
         confirmation VARCHAR(190) NULL,
         address VARCHAR(255) NULL,
+        latitude DECIMAL(10,7) NULL,
+        longitude DECIMAL(10,7) NULL,
         phone VARCHAR(80) NULL,
         url VARCHAR(500) NULL,
         cancellation_deadline DATETIME NULL,
@@ -69,8 +71,12 @@ function auth_ensure_schema(PDO $pdo): void {
         updated_at DATETIME NULL,
         updated_by VARCHAR(190) NULL,
         INDEX idx_reservations_stop (stop_id),
-        INDEX idx_reservations_date (reservation_date)
+        INDEX idx_reservations_date (reservation_date),
+        INDEX idx_reservations_location (latitude, longitude)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+    try { $pdo->exec("ALTER TABLE reservations ADD COLUMN latitude DECIMAL(10,7) NULL AFTER address"); } catch (Throwable $e) {}
+    try { $pdo->exec("ALTER TABLE reservations ADD COLUMN longitude DECIMAL(10,7) NULL AFTER latitude"); } catch (Throwable $e) {}
+    try { $pdo->exec("ALTER TABLE reservations ADD INDEX idx_reservations_location (latitude, longitude)"); } catch (Throwable $e) {}
 
     $pdo->exec("CREATE TABLE IF NOT EXISTS trip_photos (
         id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,

@@ -168,6 +168,8 @@ try {
             'reservation_time' => trim((string)($in['reservation_time'] ?? '')) ?: null,
             'confirmation' => trim((string)($in['confirmation'] ?? '')) ?: null,
             'address' => trim((string)($in['address'] ?? '')) ?: null,
+            'latitude' => ($in['latitude'] ?? '') === '' ? null : (float)$in['latitude'],
+            'longitude' => ($in['longitude'] ?? '') === '' ? null : (float)$in['longitude'],
             'phone' => trim((string)($in['phone'] ?? '')) ?: null,
             'url' => trim((string)($in['url'] ?? '')) ?: null,
             'cancellation_deadline' => trim((string)($in['cancellation_deadline'] ?? '')) ?: null,
@@ -178,11 +180,11 @@ try {
             auth_json_response(['ok' => false, 'error' => 'Reservation title is required.'], 400);
         }
         if ($id > 0) {
-            $stmt = $pdo->prepare('UPDATE reservations SET stop_id=?, title=?, type=?, status=?, reservation_date=?, reservation_time=?, confirmation=?, address=?, phone=?, url=?, cancellation_deadline=?, cost=?, notes=?, updated_at=NOW(), updated_by=? WHERE id=?');
-            $stmt->execute([$fields['stop_id'],$fields['title'],$fields['type'],$fields['status'],$fields['reservation_date'],$fields['reservation_time'],$fields['confirmation'],$fields['address'],$fields['phone'],$fields['url'],$fields['cancellation_deadline'],$fields['cost'],$fields['notes'],$user['email'],$id]);
+            $stmt = $pdo->prepare('UPDATE reservations SET stop_id=?, title=?, type=?, status=?, reservation_date=?, reservation_time=?, confirmation=?, address=?, latitude=?, longitude=?, phone=?, url=?, cancellation_deadline=?, cost=?, notes=?, updated_at=NOW(), updated_by=? WHERE id=?');
+            $stmt->execute([$fields['stop_id'],$fields['title'],$fields['type'],$fields['status'],$fields['reservation_date'],$fields['reservation_time'],$fields['confirmation'],$fields['address'],$fields['latitude'],$fields['longitude'],$fields['phone'],$fields['url'],$fields['cancellation_deadline'],$fields['cost'],$fields['notes'],$user['email'],$id]);
         } else {
-            $stmt = $pdo->prepare('INSERT INTO reservations (stop_id,title,type,status,reservation_date,reservation_time,confirmation,address,phone,url,cancellation_deadline,cost,notes,created_by) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)');
-            $stmt->execute([$fields['stop_id'],$fields['title'],$fields['type'],$fields['status'],$fields['reservation_date'],$fields['reservation_time'],$fields['confirmation'],$fields['address'],$fields['phone'],$fields['url'],$fields['cancellation_deadline'],$fields['cost'],$fields['notes'],$user['email']]);
+            $stmt = $pdo->prepare('INSERT INTO reservations (stop_id,title,type,status,reservation_date,reservation_time,confirmation,address,latitude,longitude,phone,url,cancellation_deadline,cost,notes,created_by) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)');
+            $stmt->execute([$fields['stop_id'],$fields['title'],$fields['type'],$fields['status'],$fields['reservation_date'],$fields['reservation_time'],$fields['confirmation'],$fields['address'],$fields['latitude'],$fields['longitude'],$fields['phone'],$fields['url'],$fields['cancellation_deadline'],$fields['cost'],$fields['notes'],$user['email']]);
             $id = (int)$pdo->lastInsertId();
         }
         auth_json_response(['ok' => true, 'id' => $id]);
