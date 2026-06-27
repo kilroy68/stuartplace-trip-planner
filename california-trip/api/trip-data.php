@@ -70,6 +70,13 @@ function mobile_trip_apply_lodging_stop_locations(array $trip, array $reservatio
         return $trip;
     }
 
+    $originalStopLocations = [];
+    foreach ($trip['stops'] as $index => $stop) {
+        if (is_array($stop) && isset($stop['latitude'], $stop['longitude'])) {
+            $originalStopLocations[$index] = [(float)$stop['latitude'], (float)$stop['longitude']];
+        }
+    }
+
     $lodgingByStop = [];
     foreach ($reservations as $reservation) {
         $stopId = $reservation['stop_id'] ?? null;
@@ -113,6 +120,31 @@ function mobile_trip_apply_lodging_stop_locations(array $trip, array $reservatio
             'latitude' => $lat,
             'longitude' => $lng,
         ];
+    }
+
+    if (isset($trip['segments']) && is_array($trip['segments'])) {
+        foreach ($trip['segments'] as $segmentIndex => $segment) {
+            if (!isset($segment['points']) || !is_array($segment['points'])) {
+                continue;
+            }
+            $lastPointIndex = count($segment['points']) - 1;
+            foreach ($segment['points'] as $pointIndex => $point) {
+                $latKey = array_key_exists('lat', $point) ? 'lat' : (array_key_exists('latitude', $point) ? 'latitude' : null);
+                $lngKey = array_key_exists('lng', $point) ? 'lng' : (array_key_exists('longitude', $point) ? 'longitude' : null);
+                if ($latKey === null || $lngKey === null) {
+                    continue;
+                }
+                foreach ($originalStopLocations as $stopIndex => $original) {
+                    $isEndpoint = $pointIndex === 0 || $pointIndex === $lastPointIndex;
+                    $tolerance = $isEndpoint ? 0.03 : 0.00001;
+                    if (abs((float)$point[$latKey] - $original[0]) < $tolerance && abs((float)$point[$lngKey] - $original[1]) < $tolerance) {
+                        $trip['segments'][$segmentIndex]['points'][$pointIndex][$latKey] = (float)$trip['stops'][$stopIndex]['latitude'];
+                        $trip['segments'][$segmentIndex]['points'][$pointIndex][$lngKey] = (float)$trip['stops'][$stopIndex]['longitude'];
+                        break;
+                    }
+                }
+            }
+        }
     }
 
     return $trip;

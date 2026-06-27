@@ -168,12 +168,14 @@ function setMapStyle(styleId){
   activeBaseLayer = makeMapboxLayer(styleId).addTo(map);
 }
 setMapStyle('outdoors-v12');
-const bounds=[]; const markers=[]; const routeLayers=[];
+const bounds=[]; const markers=[]; const routeLayers=[]; const drivingRouteLayers=[];
 const itineraryEl = document.getElementById('itinerary');
 const searchEl = document.getElementById('search');
 const statusEl = document.getElementById('status');
 let activeIndex = null;
 const originalStopLocations = stops.map(s=>[Number(s[1]), Number(s[2])]);
+const originalSegments = segments.map(seg=>[seg[0], seg[1].map(p=>[Number(p[0]), Number(p[1])])]);
+let routeBounds = L.latLngBounds(bounds);
 document.getElementById('statStops').textContent = stops.length;
 function mapsUrl(s){ return 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(s[1]+','+s[2]); }
 function appleMapsUrl(s){ return 'https://maps.apple.com/?ll=' + encodeURIComponent(s[1]+','+s[2]) + '&q=' + encodeURIComponent(s[0]); }
@@ -281,20 +283,53 @@ function updateStatus(){
   if(errors===0){statusEl.textContent=`Mapbox routes loaded: ${mapboxRoutes.length} segments, about ${totalMiles} miles / ${totalHours} driving hours. Planning map only; verify closures and navigation before driving.`;}
   else{statusEl.textContent=`Mapbox routes loaded with ${errors} fallback segment(s). Verify the affected route legs before driving.`;}
 }
-segments.forEach((seg,idx)=>{
-  const name=seg[0], wps=seg[1].map(p=>L.latLng(p[0],p[1])); wps.forEach(p=>bounds.push([p.lat,p.lng]));
-  const color = colors[idx % colors.length];
-  const route = mapboxRoutes[idx];
-  if(route && route.geometry && route.geometry.coordinates){
-    const latlngs = route.geometry.coordinates.map(c=>[c[1],c[0]]);
-    const layer = L.polyline(latlngs,{color,opacity:.9,weight:5}).addTo(map).bindTooltip(`${route.name}<br>${route.distance_miles} miles · ${route.duration_hours} driving hours`);
-    routeLayers.push(layer); latlngs.forEach(p=>bounds.push(p)); complete++;
-  } else {
-    errors++;
-    const fallback=L.polyline(wps,{color:'#777',weight:3,opacity:.45,dashArray:'7,8'}).addTo(map).bindTooltip(name+' — fallback line');
-    routeLayers.push(fallback);
+function effectiveRoutePointForOriginal(p){
+  for(let i=0;i<originalStopLocations.length;i++){
+    const o=originalStopLocations[i];
+    if(Math.abs(Number(p[0])-o[0])<0.00001 && Math.abs(Number(p[1])-o[1])<0.00001) return [Number(stops[i][1]),Number(stops[i][2])];
   }
-});
+  return [Number(p[0]),Number(p[1])];
+}
+function applyLodgingRouteWaypoints(){
+  segments.forEach((seg,idx)=>{ seg[1]=originalSegments[idx][1].map(effectiveRoutePointForOriginal); });
+}
+async function fetchMapboxRouteForSegment(seg, idx){
+  const coords=seg[1].map(p=>`${p[1]},${p[0]}`).join(';');
+  const url=`https://api.mapbox.com/directions/v5/mapbox/driving/${coords}?alternatives=false&geometries=geojson&overview=full&steps=false&access_token=${mapboxToken}`;
+  const json=await fetch(url).then(r=>r.ok?r.json():null).catch(()=>null);
+  const route=json?.routes?.[0];
+  if(!route?.geometry?.coordinates) return null;
+  return {name:seg[0],geometry:route.geometry,distance_miles:(route.distance||0)/1609.344,duration_hours:(route.duration||0)/3600};
+}
+async function renderDrivingRoutes(refreshFromMapbox=false){
+  drivingRouteLayers.splice(0).forEach(layer=>map.removeLayer(layer));
+  complete=0; errors=0;
+  const fitPoints=[];
+  for(const s of stops) fitPoints.push([s[1],s[2]]);
+  if(avenueOfTheGiants?.line) avenueOfTheGiants.line.forEach(p=>fitPoints.push(p));
+  for(let idx=0; idx<segments.length; idx++){
+    const seg=segments[idx];
+    const name=seg[0], wps=seg[1].map(p=>L.latLng(p[0],p[1])); wps.forEach(p=>fitPoints.push([p.lat,p.lng]));
+    const color = colors[idx % colors.length];
+    if(refreshFromMapbox) {
+      const freshRoute = await fetchMapboxRouteForSegment(seg, idx);
+      if(freshRoute) mapboxRoutes[idx]=freshRoute;
+    }
+    const route = mapboxRoutes[idx];
+    if(route && route.geometry && route.geometry.coordinates){
+      const latlngs = route.geometry.coordinates.map(c=>[c[1],c[0]]);
+      const layer = L.polyline(latlngs,{color,opacity:.9,weight:5}).addTo(map).bindTooltip(`${route.name}<br>${Number(route.distance_miles||0).toFixed(0)} miles · ${Number(route.duration_hours||0).toFixed(1)} driving hours`);
+      drivingRouteLayers.push(layer); routeLayers.push(layer); latlngs.forEach(p=>fitPoints.push(p)); complete++;
+    } else {
+      errors++;
+      const fallback=L.polyline(wps,{color:'#777',weight:3,opacity:.45,dashArray:'7,8'}).addTo(map).bindTooltip(name+' — fallback line');
+      drivingRouteLayers.push(fallback); routeLayers.push(fallback);
+    }
+  }
+  routeBounds=L.latLngBounds(fitPoints);
+  updateStatus();
+}
+renderDrivingRoutes(false);
 let photoLayer = L.layerGroup().addTo(map);
 function routeAppleLink(idx){ const seg=segments[idx]; if(!seg) return '#'; const pts=seg[1].map(p=>`${p[0]},${p[1]}`).join('&daddr='); return 'https://maps.apple.com/?saddr=' + pts; }
 function renderPanels(){
@@ -311,10 +346,10 @@ function renderReservationsPanel(){ const rows=sortedReservations().map(r=>`<li>
 function renderPhotosPanel(){ const gallery=tripData.settings.smugmug_gallery||''; const count=tripData.photos.length; const form=tripData.isAdmin?`<h3>SmugMug gallery</h3><form class="form-grid" id="galleryForm"><input name="gallery" value="${esc(gallery)}" placeholder="SmugMug trip gallery URL"><button type="submit">Save gallery URL</button></form><button id="syncSmugmug" type="button">Sync GPS photos from gallery</button><h3>Add mapped photo</h3><form class="form-grid" id="photoForm"><input name="title" placeholder="Title"><input name="photo_url" placeholder="SmugMug photo URL"><input name="thumb_url" placeholder="Thumbnail image URL"><input name="latitude" placeholder="Latitude"><input name="longitude" placeholder="Longitude"><button type="submit">Add photo marker</button></form><p class="auth-note">GPS auto-import is prepared for SmugMug metadata; add mapped photos manually here if a photo has no GPS or before API sync is configured.</p>`:`<p class="auth-note">Trip photo markers appear on the map when synced or added by an admin.</p>`; document.getElementById('photosPanel').innerHTML=panelHtml('Trip photos', `<p>${count} mapped photo marker${count===1?'':'s'}.</p>${gallery?`<p><a href="${esc(gallery)}" target="_blank" rel="noopener">Open SmugMug gallery</a></p>`:''}${form}`, false); }
 function renderScenicDetails(){ document.getElementById('scenicDetailsContent').innerHTML = `<div class="scenic-card"><h3>Avenue of the Giants</h3><p><b>When:</b> ${stopDate(4)} on the drive to Mendocino / Fort Bragg.</p><ul class="mini-list"><li>Drive the full scenic route north-to-south from Pepperwood / Exit 674 to Phillipsville / Exit 645.</li><li>Allow 60–90 minutes minimum; more with photo stops.</li><li>Recommended stops: Founders Grove, Humboldt Redwoods Visitor Center, Rockefeller Forest, Myers Flat, Miranda, Shrine Drive-Thru Tree.</li></ul><div class="actions"><a href="https://aveofthegiants.com/" target="_blank" rel="noopener">Avenue guide</a><a href="https://www.parks.ca.gov/?page_id=425" target="_blank" rel="noopener">Humboldt Redwoods SP</a><a href="${routeAppleLink(2)}" target="_blank" rel="noopener">Apple Maps route</a></div></div><p class="auth-note">This scenic detail area is separate from the main sidebar panels so more special-route cards can be added later without crowding the itinerary.</p>`; }
 function renderPhotoMarkers(){ photoLayer.clearLayers(); const groups=new Map(); tripData.photos.forEach(photo=>{ const lat=Number(photo.latitude), lng=Number(photo.longitude); if(!Number.isFinite(lat)||!Number.isFinite(lng)) return; const key=`${lat.toFixed(6)},${lng.toFixed(6)}`; if(!groups.has(key)) groups.set(key,{lat,lng,photos:[]}); groups.get(key).photos.push(photo); }); groups.forEach(group=>{ const count=group.photos.length; const icon=L.divIcon({className:'photo-icon',html:count>1?`📷<span class="photo-count">${count}</span>`:'📷',iconSize:[count>1?40:32,32],iconAnchor:[16,16],popupAnchor:[0,-18]}); const title=count===1?(group.photos[0].title||'Trip photo'):`${count} trip photos`; const body=group.photos.map((photo,idx)=>`<div class="photo-popup-item">${photo.thumb_url?`<img class="popup-thumb" src="${esc(photo.thumb_url)}" alt="${esc(photo.title||'Trip photo')}" loading="lazy">`:''}<div class="popup-title">${esc(photo.title||`Trip photo ${idx+1}`)}</div>${photo.caption?`<p>${esc(photo.caption)}</p>`:''}${photo.photo_url?`<p><a href="${esc(photo.photo_url)}" target="_blank" rel="noopener">Open in SmugMug</a></p>`:''}</div>`).join(''); L.marker([group.lat,group.lng],{title,icon}).addTo(photoLayer).bindPopup(`<div class="popup-title">${esc(title)}</div>${body}`,{autoPan:true,keepInView:true,autoPanPaddingTopLeft:popupPadding(),autoPanPaddingBottomRight:popupPadding()}); }); }
-async function loadTripData(){ try{ const data=await fetch('/auth/api.php?action=bootstrap').then(r=>r.json()); if(data.ok){ tripData=data; applyLodgingStopLocations(); renderPanels(); renderPhotoMarkers(); refreshPopups(); renderItinerary(); } }catch(e){ console.warn('Trip data unavailable', e); renderPanels(); } }
+async function loadTripData(){ try{ const data=await fetch('/auth/api.php?action=bootstrap').then(r=>r.json()); if(data.ok){ tripData=data; applyLodgingStopLocations(); applyLodgingRouteWaypoints(); await renderDrivingRoutes(true); renderPanels(); renderPhotoMarkers(); refreshPopups(); renderItinerary(); } }catch(e){ console.warn('Trip data unavailable', e); renderPanels(); } }
 document.addEventListener('submit', async e=>{ if(e.target.matches('.add-item-form')){ e.preventDefault(); const text=e.target.item_text.value.trim(); if(!text) return; await api('add_item',{stop_id:e.target.dataset.stop,item_text:text}); await loadTripData(); markers[Number(e.target.dataset.index)].openPopup(); } if(e.target.id==='reservationForm'){ e.preventDefault(); const payload=await geocodeReservationPayload(Object.fromEntries(new FormData(e.target).entries())); await api('save_reservation',payload); e.target.reset(); await loadTripData(); } if(e.target.id==='galleryForm'){ e.preventDefault(); await api('save_gallery',Object.fromEntries(new FormData(e.target).entries())); await loadTripData(); } if(e.target.id==='photoForm'){ e.preventDefault(); const payload=Object.fromEntries(new FormData(e.target).entries()); await api('add_photo',payload); e.target.reset(); await loadTripData(); } });
 document.addEventListener('click', async e=>{ const delItem=e.target.closest('[data-delete-item]'); if(delItem){ await api('delete_item',{id:delItem.dataset.deleteItem}); await loadTripData(); } const geoRes=e.target.closest('[data-geocode-reservation]'); if(geoRes){ const reservation=tripData.reservations.find(r=>String(r.id)===String(geoRes.dataset.geocodeReservation)); if(reservation){ geoRes.disabled=true; geoRes.textContent='Looking up…'; const payload=await geocodeReservationPayload(reservationPayloadFromRecord(reservation)); await api('save_reservation',payload); await loadTripData(); } } const delRes=e.target.closest('[data-delete-reservation]'); if(delRes && confirm('Delete this reservation?')){ await api('delete_reservation',{id:delRes.dataset.deleteReservation}); await loadTripData(); } if(e.target.id==='syncSmugmug'){ const res=await api('sync_smugmug',{}); alert(res.ok ? `Imported ${res.imported||0} GPS photo(s).` : (res.error||'Sync failed')); await loadTripData(); } if(e.target.id==='openScenicDetails'){ document.getElementById('scenicModal').classList.add('open'); document.getElementById('scenicModal').setAttribute('aria-hidden','false'); } if(e.target.id==='closeScenicDetails' || e.target.id==='scenicModal'){ document.getElementById('scenicModal').classList.remove('open'); document.getElementById('scenicModal').setAttribute('aria-hidden','true'); } });
-const routeBounds = L.latLngBounds(bounds); map.fitBounds(routeBounds,{padding:[34,34]}); updateStatus(); renderItinerary(); renderPanels(); loadTripData();
+map.fitBounds(routeBounds,{padding:[34,34]}); updateStatus(); renderItinerary(); renderPanels(); loadTripData();
 searchEl.addEventListener('input', renderItinerary);
 document.getElementById('styleSelect').addEventListener('change', e=>setMapStyle(e.target.value));
 document.getElementById('fitRoute').addEventListener('click',()=>map.fitBounds(routeBounds,{padding:[34,34]}));
