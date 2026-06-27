@@ -77,6 +77,17 @@ function auth_ensure_schema(PDO $pdo): void {
     try { $pdo->exec("ALTER TABLE reservations ADD COLUMN latitude DECIMAL(10,7) NULL AFTER address"); } catch (Throwable $e) {}
     try { $pdo->exec("ALTER TABLE reservations ADD COLUMN longitude DECIMAL(10,7) NULL AFTER latitude"); } catch (Throwable $e) {}
     try { $pdo->exec("ALTER TABLE reservations ADD INDEX idx_reservations_location (latitude, longitude)"); } catch (Throwable $e) {}
+    $knownLodgingLocations = [
+        ['%Humb%Bay Inn%', '232 W 5th St, Eureka, CA 95501', 40.8007913, -124.1746341],
+        ['%Beachcomber Motel%', '1111 N Main St, Fort Bragg, CA 95437', 39.4420864, -123.8059500],
+        ['%Hotel Zephyr%', '250 Beach St, San Francisco, CA 94133', 37.8080398, -122.4128718],
+    ];
+    foreach ($knownLodgingLocations as [$titleLike, $address, $lat, $lng]) {
+        try {
+            $stmt = $pdo->prepare("UPDATE reservations SET address = COALESCE(address, ?), latitude = ?, longitude = ?, updated_at = NOW(), updated_by = COALESCE(updated_by, 'system-geocode') WHERE type = 'Lodging' AND title LIKE ? AND (latitude IS NULL OR longitude IS NULL)");
+            $stmt->execute([$address, $lat, $lng, $titleLike]);
+        } catch (Throwable $e) {}
+    }
 
     $pdo->exec("CREATE TABLE IF NOT EXISTS trip_photos (
         id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
