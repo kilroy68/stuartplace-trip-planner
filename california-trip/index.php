@@ -291,8 +291,15 @@ function effectiveRoutePointForOriginal(p,isEndpoint=false){
   }
   return [Number(p[0]),Number(p[1])];
 }
+const segmentEndpointStopIndexes = [[0,1],[1,3],[3,4],[4,5],[5,6],[6,7],[7,8],[8,8],[8,9],[9,10],[10,11],[11,12]];
+function routeEndpointForSegmentPoint(segmentIndex, pointIndex, lastIndex, originalPoint){
+  const endpointStops=segmentEndpointStopIndexes[segmentIndex];
+  if(endpointStops && pointIndex===0 && stops[endpointStops[0]]) return [Number(stops[endpointStops[0]][1]), Number(stops[endpointStops[0]][2])];
+  if(endpointStops && pointIndex===lastIndex && stops[endpointStops[1]]) return [Number(stops[endpointStops[1]][1]), Number(stops[endpointStops[1]][2])];
+  return effectiveRoutePointForOriginal(originalPoint, pointIndex===0||pointIndex===lastIndex);
+}
 function applyLodgingRouteWaypoints(){
-  segments.forEach((seg,idx)=>{ const last=originalSegments[idx][1].length-1; seg[1]=originalSegments[idx][1].map((p,pidx)=>effectiveRoutePointForOriginal(p,pidx===0||pidx===last)); });
+  segments.forEach((seg,idx)=>{ const last=originalSegments[idx][1].length-1; seg[1]=originalSegments[idx][1].map((p,pidx)=>routeEndpointForSegmentPoint(idx,pidx,last,p)); });
 }
 async function fetchMapboxRouteForSegment(seg, idx){
   const coords=seg[1].map(p=>`${p[1]},${p[0]}`).join(';');

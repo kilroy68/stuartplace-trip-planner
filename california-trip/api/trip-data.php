@@ -122,6 +122,11 @@ function mobile_trip_apply_lodging_stop_locations(array $trip, array $reservatio
         ];
     }
 
+    $segmentEndpointStopIndexes = [
+        [0, 1], [1, 3], [3, 4], [4, 5], [5, 6], [6, 7],
+        [7, 8], [8, 8], [8, 9], [9, 10], [10, 11], [11, 12],
+    ];
+
     if (isset($trip['segments']) && is_array($trip['segments'])) {
         foreach ($trip['segments'] as $segmentIndex => $segment) {
             if (!isset($segment['points']) || !is_array($segment['points'])) {
@@ -133,6 +138,15 @@ function mobile_trip_apply_lodging_stop_locations(array $trip, array $reservatio
                 $lngKey = array_key_exists('lng', $point) ? 'lng' : (array_key_exists('longitude', $point) ? 'longitude' : null);
                 if ($latKey === null || $lngKey === null) {
                     continue;
+                }
+                $endpointStops = $segmentEndpointStopIndexes[$segmentIndex] ?? null;
+                if ($endpointStops !== null && ($pointIndex === 0 || $pointIndex === $lastPointIndex)) {
+                    $mappedStopIndex = $pointIndex === 0 ? $endpointStops[0] : $endpointStops[1];
+                    if (isset($trip['stops'][$mappedStopIndex]['latitude'], $trip['stops'][$mappedStopIndex]['longitude'])) {
+                        $trip['segments'][$segmentIndex]['points'][$pointIndex][$latKey] = (float)$trip['stops'][$mappedStopIndex]['latitude'];
+                        $trip['segments'][$segmentIndex]['points'][$pointIndex][$lngKey] = (float)$trip['stops'][$mappedStopIndex]['longitude'];
+                        continue;
+                    }
                 }
                 foreach ($originalStopLocations as $stopIndex => $original) {
                     $isEndpoint = $pointIndex === 0 || $pointIndex === $lastPointIndex;
