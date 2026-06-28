@@ -142,6 +142,7 @@ function mobile_trip_apply_lodging_stop_locations(array $trip, array $reservatio
                 continue;
             }
             $lastPointIndex = count($segment['points']) - 1;
+            $mappedEndPoint = null;
             foreach ($segment['points'] as $pointIndex => $point) {
                 $latKey = array_key_exists('lat', $point) ? 'lat' : (array_key_exists('latitude', $point) ? 'latitude' : null);
                 $lngKey = array_key_exists('lng', $point) ? 'lng' : (array_key_exists('longitude', $point) ? 'longitude' : null);
@@ -154,6 +155,9 @@ function mobile_trip_apply_lodging_stop_locations(array $trip, array $reservatio
                     if (isset($trip['stops'][$mappedStopIndex]['latitude'], $trip['stops'][$mappedStopIndex]['longitude'])) {
                         $trip['segments'][$segmentIndex]['points'][$pointIndex][$latKey] = (float)$trip['stops'][$mappedStopIndex]['latitude'];
                         $trip['segments'][$segmentIndex]['points'][$pointIndex][$lngKey] = (float)$trip['stops'][$mappedStopIndex]['longitude'];
+                        if ($pointIndex === $lastPointIndex) {
+                            $mappedEndPoint = [(float)$trip['stops'][$mappedStopIndex]['latitude'], (float)$trip['stops'][$mappedStopIndex]['longitude'], $latKey, $lngKey];
+                        }
                         continue;
                     }
                 }
@@ -165,6 +169,32 @@ function mobile_trip_apply_lodging_stop_locations(array $trip, array $reservatio
                         $trip['segments'][$segmentIndex]['points'][$pointIndex][$lngKey] = (float)$trip['stops'][$stopIndex]['longitude'];
                         break;
                     }
+                }
+            }
+            // If a lodging coordinate moved an endpoint, embedded road geometry can still contain
+            // stale points beyond the new endpoint (e.g. old downtown LA after Santa Monica hotel).
+            // Trim any tail after the closest point to the new endpoint, then end exactly at lodging.
+            if ($mappedEndPoint !== null && count($trip['segments'][$segmentIndex]['points']) > 2) {
+                [$endLat, $endLng, $latKey, $lngKey] = $mappedEndPoint;
+                $closestIndex = null;
+                $closestDistance = null;
+                $points = $trip['segments'][$segmentIndex]['points'];
+                $pointCount = count($points);
+                for ($i = 1; $i < $pointCount - 1; $i++) {
+                    if (!isset($points[$i][$latKey], $points[$i][$lngKey])) continue;
+                    $distance = hypot((float)$points[$i][$latKey] - $endLat, (float)$points[$i][$lngKey] - $endLng);
+                    if ($closestDistance === null || $distance < $closestDistance) {
+                        $closestDistance = $distance;
+                        $closestIndex = $i;
+                    }
+                }
+                if ($closestIndex !== null && $closestDistance !== null && $closestDistance < 0.03 && $closestIndex < $pointCount - 2) {
+                    $trimmed = array_slice($points, 0, $closestIndex + 1);
+                    $last = $trimmed[count($trimmed) - 1];
+                    $last[$latKey] = $endLat;
+                    $last[$lngKey] = $endLng;
+                    $trimmed[] = $last;
+                    $trip['segments'][$segmentIndex]['points'] = $trimmed;
                 }
             }
         }
