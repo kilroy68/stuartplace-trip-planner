@@ -54,6 +54,54 @@ function api_find_album_uri($value): ?string {
     return null;
 }
 
+function api_reservation_geocode_query(array $reservation): string {
+    $address = trim((string)($reservation['address'] ?? ''));
+    if ($address !== '') {
+        return $address;
+    }
+    $title = trim((string)($reservation['title'] ?? ''));
+    $text = $title . ' ' . trim((string)($reservation['notes'] ?? ''));
+    if (preg_match('/humb.*bay inn/i', $text)) return '232 W 5th St, Eureka, CA 95501';
+    if (preg_match('/beachcomber motel/i', $text)) return '1111 N Main St, Fort Bragg, CA 95437';
+    if (preg_match('/hotel zephyr/i', $text)) return '250 Beach St, San Francisco, CA 94133';
+    if (preg_match('/santa\s*monica|\bpier\b|\blax\b/i', $text)) return trim($title . ' Santa Monica CA');
+    return trim($title . ' California');
+}
+
+function api_geocode_reservation_with_nominatim(array $reservation): array {
+    $query = api_reservation_geocode_query($reservation);
+    if ($query === '') {
+        throw new RuntimeException('No address or title available to look up.');
+    }
+    $url = 'https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&q=' . rawurlencode($query);
+    $ch = curl_init($url);
+    curl_setopt_array($ch, [
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_TIMEOUT => 20,
+        CURLOPT_HTTPHEADER => [
+            'Accept: application/json',
+            'User-Agent: stuartplace-trip-planner/1.0 (https://www.stuartplace.net/)'
+        ],
+    ]);
+    $raw = curl_exec($ch);
+    $http = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $err = curl_error($ch);
+    curl_close($ch);
+    if ($raw === false || $http < 200 || $http >= 300) {
+        throw new RuntimeException($err ?: 'Nominatim lookup failed with HTTP ' . $http);
+    }
+    $results = json_decode($raw, true);
+    if (!is_array($results) || empty($results[0]['lat']) || empty($results[0]['lon'])) {
+        throw new RuntimeException('No coordinate found for query: ' . $query);
+    }
+    return [
+        'query' => $query,
+        'latitude' => (float)$results[0]['lat'],
+        'longitude' => (float)$results[0]['lon'],
+        'display_name' => (string)($results[0]['display_name'] ?? ''),
+    ];
+}
+
 function api_smugmug_album_uri_from_gallery(string $gallery, string $apiKey): string {
     $gallery = trim($gallery);
     if ($gallery === '') {
@@ -201,6 +249,34 @@ try {
         $stmt = $pdo->prepare('DELETE FROM reservations WHERE id = ?');
         $stmt->execute([(int)($in['id'] ?? 0)]);
         auth_json_response(['ok' => true]);
+    }
+
+    if ($action === 'geocode_reservation') {
+        api_require_admin();
+        $in = api_input();
+        $id = (int)($in['id'] ?? 0);
+        if ($id <= 0) {
+            auth_json_response(['ok' => false, 'error' => 'Reservation id is required.'], 400);
+        }
+        $stmt = $pdo->prepare('SELECT * FROM reservations WHERE id = ?');
+        $stmt->execute([$id]);
+        $reservation = $stmt->fetch();
+        if (!$reservation) {
+            auth_json_response(['ok' => false, 'error' => 'Reservation not found.'], 404);
+        }
+        if (strcasecmp((string)($reservation['type'] ?? ''), 'Lodging') !== 0) {
+            auth_json_response(['ok' => false, 'error' => 'Only lodging reservations can be geocoded here.'], 400);
+        }
+        $geo = api_geocode_reservation_with_nominatim($reservation);
+        $stopId = ($reservation['stop_id'] ?? null) === null ? null : (int)$reservation['stop_id'];
+        $reservationText = implode(' ', array_filter([(string)($reservation['title'] ?? ''), (string)($reservation['address'] ?? ''), (string)($reservation['notes'] ?? '')]));
+        if ($stopId === 12 && preg_match('/santa\s*monica|\bpier\b|\blax\b/i', $reservationText)) {
+            $stopId = 13;
+        }
+        $address = trim((string)($reservation['address'] ?? '')) ?: ($geo['display_name'] ?: null);
+        $stmt = $pdo->prepare('UPDATE reservations SET stop_id=?, address=?, latitude=?, longitude=?, updated_at=NOW(), updated_by=? WHERE id=?');
+        $stmt->execute([$stopId, $address, $geo['latitude'], $geo['longitude'], $user['email'], $id]);
+        auth_json_response(['ok' => true, 'id' => $id, 'stop_id' => $stopId, 'address' => $address, 'query' => $geo['query'], 'latitude' => $geo['latitude'], 'longitude' => $geo['longitude'], 'display_name' => $geo['display_name']]);
     }
 
     if ($action === 'save_gallery') {
