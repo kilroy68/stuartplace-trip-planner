@@ -92,6 +92,15 @@ function mobile_trip_apply_lodging_stop_locations(array $trip, array $reservatio
             continue;
         }
         $key = (int)$stopId;
+        $reservationText = implode(' ', array_filter([
+            (string)($reservation['title'] ?? ''),
+            (string)($reservation['address'] ?? ''),
+            (string)($reservation['notes'] ?? ''),
+        ]));
+        if ($key === 12 && preg_match('/santa\s*monica|\bpier\b|\blax\b/i', $reservationText)) {
+            // Current visible itinerary index for Santa Monica is 12, but preserved DB stop id is 13.
+            $key = 13;
+        }
         if (!isset($lodgingByStop[$key])) {
             $lodgingByStop[$key] = $reservation;
         }

@@ -176,6 +176,11 @@ try {
             'cost' => ($in['cost'] ?? '') === '' ? null : (float)$in['cost'],
             'notes' => trim((string)($in['notes'] ?? '')) ?: null,
         ];
+        $reservationText = implode(' ', array_filter([$fields['title'], $fields['address'], $fields['notes']]));
+        if ($fields['stop_id'] === 12 && preg_match('/santa\s*monica|\bpier\b|\blax\b/i', $reservationText)) {
+            // Current visible itinerary index for Santa Monica is 12, but preserved DB stop id is 13.
+            $fields['stop_id'] = 13;
+        }
         if ($fields['title'] === '') {
             auth_json_response(['ok' => false, 'error' => 'Reservation title is required.'], 400);
         }
