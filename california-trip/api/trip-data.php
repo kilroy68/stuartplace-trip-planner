@@ -153,10 +153,17 @@ function mobile_trip_apply_lodging_stop_locations(array $trip, array $reservatio
                 if ($endpointStops !== null && ($pointIndex === 0 || $pointIndex === $lastPointIndex)) {
                     $mappedStopIndex = $pointIndex === 0 ? $endpointStops[0] : $endpointStops[1];
                     if (isset($trip['stops'][$mappedStopIndex]['latitude'], $trip['stops'][$mappedStopIndex]['longitude'])) {
-                        $trip['segments'][$segmentIndex]['points'][$pointIndex][$latKey] = (float)$trip['stops'][$mappedStopIndex]['latitude'];
-                        $trip['segments'][$segmentIndex]['points'][$pointIndex][$lngKey] = (float)$trip['stops'][$mappedStopIndex]['longitude'];
+                        $mappedLat = (float)$trip['stops'][$mappedStopIndex]['latitude'];
+                        $mappedLng = (float)$trip['stops'][$mappedStopIndex]['longitude'];
+                        $isDenseRoadGeometry = count($segment['points']) > 10;
+                        $alreadyNearMappedStop = hypot((float)$point[$latKey] - $mappedLat, (float)$point[$lngKey] - $mappedLng) < 0.03;
+                        if ($pointIndex === $lastPointIndex && $isDenseRoadGeometry && $alreadyNearMappedStop) {
+                            continue;
+                        }
+                        $trip['segments'][$segmentIndex]['points'][$pointIndex][$latKey] = $mappedLat;
+                        $trip['segments'][$segmentIndex]['points'][$pointIndex][$lngKey] = $mappedLng;
                         if ($pointIndex === $lastPointIndex) {
-                            $mappedEndPoint = [(float)$trip['stops'][$mappedStopIndex]['latitude'], (float)$trip['stops'][$mappedStopIndex]['longitude'], $latKey, $lngKey];
+                            $mappedEndPoint = [$mappedLat, $mappedLng, $latKey, $lngKey];
                         }
                         continue;
                     }
@@ -189,12 +196,7 @@ function mobile_trip_apply_lodging_stop_locations(array $trip, array $reservatio
                     }
                 }
                 if ($closestIndex !== null && $closestDistance !== null && $closestDistance < 0.03 && $closestIndex < $pointCount - 2) {
-                    $trimmed = array_slice($points, 0, $closestIndex + 1);
-                    $last = $trimmed[count($trimmed) - 1];
-                    $last[$latKey] = $endLat;
-                    $last[$lngKey] = $endLng;
-                    $trimmed[] = $last;
-                    $trip['segments'][$segmentIndex]['points'] = $trimmed;
+                    $trip['segments'][$segmentIndex]['points'] = array_slice($points, 0, $closestIndex + 1);
                 }
             }
         }
