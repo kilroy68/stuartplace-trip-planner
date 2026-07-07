@@ -11,6 +11,12 @@ $currentUser = auth_current_user();
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="manifest" href="/california-trip/manifest.webmanifest">
+<meta name="theme-color" content="#0f6c81">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="California Trip">
+<link rel="apple-touch-icon" href="/california-trip/icons/apple-touch-icon.png">
 <title>California Coast + Yosemite Trip Planner</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <style>
@@ -75,6 +81,7 @@ button.primary{background:var(--accent);border-color:var(--accent);color:white}
   .sidebar.collapsed .itinerary,.sidebar.collapsed .controls{display:none}.sidebar.collapsed .hero{padding-bottom:14px}
   .map-card{display:flex}.legend{left:10px;right:10px;bottom:10px;max-width:none}.app.sidebar-collapsed .sidebar{display:none}.app.sidebar-collapsed .map-wrap{height:100vh}
 }
+.pwa-install{position:fixed;left:14px;right:14px;bottom:14px;z-index:2600;display:none;gap:12px;align-items:flex-start;background:rgba(255,250,242,.98);border:1px solid var(--line);box-shadow:0 18px 50px rgba(16,32,36,.24);border-radius:18px;padding:13px 14px;color:#263336;max-width:560px;margin:0 auto}.pwa-install.show{display:flex}.pwa-install strong{display:block;font-size:14px;margin-bottom:4px}.pwa-install span{display:block;font-size:12px;line-height:1.35;color:#516064}.pwa-install .share-icon{display:inline-block;border:1px solid #c8d8dc;border-radius:7px;padding:0 4px;background:#fff;color:#0f6c81;font-weight:900}.pwa-install button{margin-left:auto;min-width:34px;justify-content:center}@media(max-width:860px){.pwa-install{bottom:10px;left:10px;right:10px;border-radius:16px}}
 @media print{
   body{overflow:visible;background:#fff}.app{display:block}.map-wrap,.controls,.legend,.status,.mobile-toggle{display:none!important}.sidebar{height:auto;overflow:visible;box-shadow:none;border:0;background:#fff}.hero{background:#fff}.card{break-inside:avoid;box-shadow:none;background:#fff}
 }
@@ -82,8 +89,12 @@ button.primary{background:var(--accent);border-color:var(--accent);color:white}
 </head>
 <body>
 
+<div class="pwa-install" id="pwaInstall" role="status" aria-live="polite">
+  <div><strong>Install California Trip on this device</strong><span>On iPhone/iPad: tap the <span class="share-icon">□↑</span> Share button, then choose <b>Add to Home Screen</b>. It will open like an app and will not expire every 7 days.</span></div>
+  <button id="dismissPwaInstall" type="button" aria-label="Dismiss install instructions">×</button>
+</div>
 <div class="auth-bar">
-  <span>Signed in as <?= auth_h($currentUser['email'] ?? '') ?></span><span class="tiny">Build website-hwy1-route-7f58947</span>
+  <span>Signed in as <?= auth_h($currentUser['email'] ?? '') ?></span><span class="tiny">Build pwa-ios-4d4a5f7</span>
   <?php if (($currentUser['role'] ?? '') === 'admin'): ?><a href="<?= auth_h(auth_url('/auth/users.php')) ?>">Manage users</a><?php endif; ?>
   <a href="<?= auth_h(auth_url('/auth/logout.php')) ?>">Sign out</a>
 </div>
@@ -140,7 +151,7 @@ button.primary{background:var(--accent);border-color:var(--accent);color:white}
 <script>
 const currentUser = <?= json_encode($currentUser, JSON_UNESCAPED_SLASHES) ?>;
 const isAdmin = <?= (($currentUser['role'] ?? '') === 'admin') ? 'true' : 'false' ?>;
-const siteBuildVersion = 'website-hwy1-route-7f58947';
+const siteBuildVersion = 'pwa-ios-4d4a5f7';
 const stops = [["0. Medford, OR — fly in / rent car",42.3265,-122.8756,"Arrival / positioning night",["Pick up rental car and supplies.","Drive US-199 toward Crescent City when ready.","Optional: overnight in Medford if arrival is late.","If time allows: Jacksonville historic district or Rogue River area."],["Culture"]],["1. Crescent City",41.7558,-124.2026,"2 nights including arrival night",["California/Oregon border photo stop.","Jedediah Smith Redwoods scenic drive.","Stout Grove redwoods walk if mobility allows.","Battery Point Lighthouse viewpoint; check tide if walking out.","Crescent Beach Overlook and harbor area."],["Redwoods","Viewpoints","Lighthouses","Beaches","Waterfront","Easy walks"]],["1A. Trees of Mystery SkyTrail — Klamath",41.584472,-124.085786,"Redwoods attraction / gondola stop",["Ride the SkyTrail gondola through the redwood canopy.","Located at Trees of Mystery on US-101 near Klamath, between Crescent City and Prairie Creek/Trinidad.","Good fit while based in Crescent City or on the drive south toward Trinidad/Eureka.","Official notes: enclosed six-passenger gondolas; roughly 8–10 minute ride each way.","Verify current hours, weather, and ticket details before going."],["Redwoods","Viewpoints","Family","Easy walks","Tram/Gondola"],{"type":"attraction","icon":"🚡","website":"https://treesofmystery.net/sky-trail/","thumbnail":"https://treesofmystery.net/wp-content/uploads/2020/03/SkyTrail_2MovingRoom.jpg","thumbnailAlt":"Trees of Mystery SkyTrail gondola moving through the redwoods"}],["2. Trinidad / Eureka / Arcata",40.8021,-124.1637,"1 night",["Prairie Creek Redwoods scenic drive.","Newton B. Drury Scenic Parkway.","Big Tree Wayside / easy redwood stops.","Trinidad Head and harbor viewpoints.","Eureka Old Town or Arcata Plaza for dinner."],["Redwoods","Viewpoints","Waterfront"]],["3–4. Mendocino / Fort Bragg",39.4457,-123.8053,"2 nights",["Avenue of the Giants on the drive south.","Leggett to coast section of CA-1.","Mendocino Headlands overlooks.","Point Cabrillo Light Station.","Glass Beach / Fort Bragg coastal trail.","Russian Gulch State Park viewpoints."],["Viewpoints","Beaches","Coast","Hiking"]],["5–6. San Francisco",37.7749,-122.4194,"2 nights",["Arrive via Marin / Golden Gate after the Mendocino coast drive.","Golden Gate Bridge and Marin Headlands viewpoints.","Lands End / Sutro Baths viewpoints.","Presidio or Golden Gate Park.","Ferry Building / Embarcadero.","Alcatraz only if booked in advance and mobility works."],["Viewpoints","Easy walks"]],["7–9. Yosemite area",37.8651,-119.5383,"3 nights",["Tunnel View.","Yosemite Valley: El Capitan Meadow, Cook's Meadow, Valley viewpoints.","Lower Yosemite Fall area if conditions and mobility allow.","Use one full day for Glacier Point and Washburn Point if the road is open.","Use the other full day for Yosemite Valley, Mariposa Grove, or Tioga Road depending on conditions."],["Yosemite","Viewpoints","Easy walks"]],["10. Half Moon Bay or Santa Cruz",37.4636,-122.4286,"1 night",["Return from Yosemite to the coast.","Half Moon Bay harbor and coastal trail.","Pescadero and Pigeon Point Lighthouse area.","Año Nuevo viewpoints if time allows.","Santa Cruz waterfront or Capitola village."],["Yosemite","Viewpoints","Lighthouses","Coast","Waterfront","Hiking"]],["11–13. Monterey / Pacific Grove / Carmel",36.6002,-121.8947,"3 nights",["Monterey Bay Aquarium.","Cannery Row and Old Fisherman's Wharf.","Pacific Grove coastline, Lovers Point, Asilomar.","17-Mile Drive scenic pullouts.","Carmel-by-the-Sea and Carmel Beach overlook.","Point Lobos accessible viewpoints/trails.","Carmel Valley if you want warmer weather or wine tasting."],["Viewpoints","Beaches","Coast","Waterfront","Family","Wine","Hiking"]],["14. Cambria / San Simeon / Morro Bay",35.5641,-121.0808,"1 night",["Big Sur drive southbound.","Bixby Bridge pullout.","Nepenthe / Big Sur village area.","McWay Falls overlook area.","Ragged Point.","Piedras Blancas elephant seal rookery.","Hearst Castle if booked and mobility works.","Moonstone Beach boardwalk in Cambria."],["Viewpoints","Beaches","Culture","Easy walks"]],["15. San Luis Obispo / Morro Bay",35.2828,-120.6596,"1 night",["Morro Rock and waterfront.","Montaña de Oro scenic overlooks.","San Luis Obispo Mission and downtown.","Avila Beach or Pismo Beach.","Optional Edna Valley wine country."],["Viewpoints","Beaches","Wine","Culture"]],["16. Santa Barbara",34.4208,-119.6982,"1 night",["Santa Barbara County Courthouse tower/easy grounds.","Stearns Wharf and waterfront.","Mission Santa Barbara exterior and rose garden.","State Street / Funk Zone.","Butterfly Beach / Montecito drive if time allows."],["Beaches","Waterfront","Culture"]],["17. Santa Monica / LAX departure",34.0522,-118.2437,"1 night by Santa Monica Pier; fly out of LAX on Oct 7",["Drive from Santa Barbara toward Santa Monica.","Stay next to Santa Monica Pier the night before the flight.","Santa Monica Pier and Palisades Park.","Optional: Malibu / Point Dume overlook or Getty Villa if reserved and timing works.","Allow extra time for traffic to LAX on Oct 7."],["Viewpoints","Coast"]]];
 const segments = [["Day 0: Medford to Crescent City",[[42.3265,-122.8756],[42.439,-123.3284],[42.1629,-123.6476],[41.7558,-124.2026]]],["Day 2: Crescent City to Eureka / Trinidad",[[41.7558,-124.2026],[41.5915,-124.1006],[41.2132,-124.0046],[41.0593,-124.1438],[40.8021,-124.1637]]],["Day 3: Eureka to Mendocino / Fort Bragg",[[40.8021,-124.1637],[40.443146,-124.037586],[40.431402,-123.984802],[40.3550623,-123.9252948],[40.327555,-123.925566],[40.2663994,-123.872509],[40.21912,-123.811751],[40.180006,-123.779924],[39.8657,-123.7147],[39.5522,-123.7667],[39.3077,-123.7995]]],["Day 5: Mendocino / Fort Bragg to San Francisco",[[39.3077,-123.7995],[38.9092,-123.6921],[38.7663,-123.5318],[38.5147,-123.246],[38.4305,-123.1038],[38.3332,-123.0481],[38.0691,-122.807],[37.9094,-122.6047],[37.8199,-122.4783],[37.7749,-122.4194]]],["Day 7: San Francisco to Yosemite",[[37.7749,-122.4194],[37.6688,-121.8859],[37.7974,-120.9969],[37.8124,-120.2383],[37.8651,-119.5383]]],["Day 11: Yosemite to Half Moon Bay",[[37.8651,-119.5383],[37.8124,-120.2383],[37.7974,-120.9969],[37.6688,-121.8859],[37.5485,-122.3096],[37.4636,-122.4286]]],["Day 12: Half Moon Bay to Monterey",[[37.4636,-122.4286],[37.2552,-122.383],[37.1121,-122.337],[36.9741,-122.0308],[36.9752,-121.9533],[36.8044,-121.7869],[36.6002,-121.8947]]],["Day 13–14: Monterey / Carmel local loop",[[36.6002,-121.8947],[36.6177,-121.9166],[36.5687,-121.949],[36.5552,-121.9233],[36.5159,-121.9377],[36.6002,-121.8947]]],["Day 14: Carmel to Cambria",[[36.5552,-121.9233],[36.3725,-121.9018],[36.2704,-121.8081],[36.158,-121.6727],[35.7828,-121.3309],[35.6636,-121.2579],[35.5641,-121.0808]]],["Day 15: Cambria to San Luis Obispo",[[35.5641,-121.0808],[35.3658,-120.8499],[35.269,-120.8884],[35.2828,-120.6596]]],["Day 17: San Luis Obispo to Santa Barbara",[[35.2828,-120.6596],[35.1428,-120.6413],[34.5958,-120.1376],[34.4208,-119.6982]]],["Day 18: Santa Barbara to Los Angeles",[[34.4208,-119.6982],[34.2746,-119.229],[34.0259,-118.7798],[34.0195,-118.4912],[34.0522,-118.2437]]]];
 const colors = ['#0f6c81','#d46b38','#2f7d55','#7157a8','#bb4d68','#5f7f13','#1167b1','#a85f12','#427c78','#8d5a99','#b4584a','#5874a6','#6b7b3c'];
@@ -386,6 +397,19 @@ function updateSidebarToggle(){ const collapsed=appShell.classList.contains('sid
 sidebarToggle.addEventListener('click',()=>{ appShell.classList.toggle('sidebar-collapsed'); updateSidebarToggle(); });
 updateSidebarToggle();
 document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ map.closePopup(); document.getElementById('scenicModal').classList.remove('open'); document.getElementById('scenicModal').setAttribute('aria-hidden','true'); } });
+
+function isIOSDevice(){ return /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1); }
+function isStandalonePwa(){ return window.navigator.standalone === true || window.matchMedia('(display-mode: standalone)').matches; }
+function setupPwaInstallNotice(){
+  const banner=document.getElementById('pwaInstall');
+  const dismiss=document.getElementById('dismissPwaInstall');
+  if(!banner || !dismiss) return;
+  const dismissed=localStorage.getItem('caltrip-pwa-install-dismissed')==='1';
+  if(isIOSDevice() && !isStandalonePwa() && !dismissed) banner.classList.add('show');
+  dismiss.addEventListener('click',()=>{ localStorage.setItem('caltrip-pwa-install-dismissed','1'); banner.classList.remove('show'); });
+}
+if('serviceWorker' in navigator){ window.addEventListener('load',()=>{ navigator.serviceWorker.register('/california-trip/sw.js',{scope:'/california-trip/'}).catch(err=>console.warn('PWA service worker registration failed', err)); }); }
+setupPwaInstallNotice();
 </script>
 </body>
 </html>

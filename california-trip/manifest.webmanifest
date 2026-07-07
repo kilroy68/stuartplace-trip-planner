@@ -1,0 +1,27 @@
+{
+  "name": "California Trip Planner",
+  "short_name": "California Trip",
+  "description": "David and Angela's California Coast + Yosemite trip planner.",
+  "id": "/california-trip/",
+  "start_url": "/california-trip/?source=pwa",
+  "scope": "/california-trip/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#f6f3ed",
+  "theme_color": "#0f6c81",
+  "categories": ["travel", "navigation", "productivity"],
+  "icons": [
+    {
+      "src": "/california-trip/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/california-trip/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

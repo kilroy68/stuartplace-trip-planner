@@ -1,8 +1,21 @@
 DirectoryIndex index.php index.html
+
+AddType application/manifest+json .webmanifest
+AddType application/javascript .js
+AddType image/svg+xml .svg
+
 <IfModule mod_rewrite.c>
 RewriteEngine On
 RewriteRule ^index\.html$ /california-trip/ [R=302,L]
 </IfModule>
+
+<IfModule mod_headers.c>
+  <Files "sw.js">
+    Header set Service-Worker-Allowed "/california-trip/"
+    Header set Cache-Control "no-cache"
+  </Files>
+</IfModule>
+
 <Files "config.php">
 Require all denied
 </Files>
