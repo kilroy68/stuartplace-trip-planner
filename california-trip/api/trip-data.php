@@ -97,7 +97,10 @@ function mobile_trip_apply_lodging_stop_locations(array $trip, array $reservatio
             (string)($reservation['address'] ?? ''),
             (string)($reservation['notes'] ?? ''),
         ]));
-        if ($key === 6 && preg_match('/yosemite|el\s*portal|wawona|fish\s*camp|oakhurst|mariposa|tenaya|rush\s*creek|evergreen|curry\s*village|ahwahnee/i', $reservationText)) {
+        if ($key === 6 && (
+            preg_match('/yosemite|el\s*portal|wawona|fish\s*camp|oakhurst|mariposa|tenaya|rush\s*creek|evergreen|curry\s*village|ahwahnee|cedar\s*lodge|yosemite\s*view|autocamp/i', $reservationText)
+            || (strcasecmp((string)($reservation['type'] ?? ''), 'Lodging') === 0 && (string)($reservation['reservation_date'] ?? '') >= '2026-09-26' && (string)($reservation['reservation_date'] ?? '') <= '2026-09-29')
+        )) {
             // Current Yosemite itinerary stop uses preserved DB stop id 7; older rows/forms may have used 6.
             $key = 7;
         }
