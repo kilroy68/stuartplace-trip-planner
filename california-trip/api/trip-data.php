@@ -97,6 +97,10 @@ function mobile_trip_apply_lodging_stop_locations(array $trip, array $reservatio
             (string)($reservation['address'] ?? ''),
             (string)($reservation['notes'] ?? ''),
         ]));
+        if ($key === 6 && preg_match('/yosemite|el\s*portal|wawona|fish\s*camp|oakhurst|mariposa|tenaya|rush\s*creek|evergreen|curry\s*village|ahwahnee/i', $reservationText)) {
+            // Current Yosemite itinerary stop uses preserved DB stop id 7; older rows/forms may have used 6.
+            $key = 7;
+        }
         if ($key === 12 && preg_match('/santa\s*monica|\bpier\b|\blax\b/i', $reservationText)) {
             // Current visible itinerary index for Santa Monica is 12, but preserved DB stop id is 13.
             $key = 13;

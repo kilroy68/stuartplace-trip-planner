@@ -225,6 +225,10 @@ try {
             'notes' => trim((string)($in['notes'] ?? '')) ?: null,
         ];
         $reservationText = implode(' ', array_filter([$fields['title'], $fields['address'], $fields['notes']]));
+        if ($fields['stop_id'] === 6 && preg_match('/yosemite|el\s*portal|wawona|fish\s*camp|oakhurst|mariposa|tenaya|rush\s*creek|evergreen|curry\s*village|ahwahnee/i', $reservationText)) {
+            // Current Yosemite itinerary stop uses preserved DB stop id 7; older rows/forms may have used 6.
+            $fields['stop_id'] = 7;
+        }
         if ($fields['stop_id'] === 12 && preg_match('/santa\s*monica|\bpier\b|\blax\b/i', $reservationText)) {
             // Current visible itinerary index for Santa Monica is 12, but preserved DB stop id is 13.
             $fields['stop_id'] = 13;
@@ -270,6 +274,9 @@ try {
         $geo = api_geocode_reservation_with_nominatim($reservation);
         $stopId = ($reservation['stop_id'] ?? null) === null ? null : (int)$reservation['stop_id'];
         $reservationText = implode(' ', array_filter([(string)($reservation['title'] ?? ''), (string)($reservation['address'] ?? ''), (string)($reservation['notes'] ?? '')]));
+        if ($stopId === 6 && preg_match('/yosemite|el\s*portal|wawona|fish\s*camp|oakhurst|mariposa|tenaya|rush\s*creek|evergreen|curry\s*village|ahwahnee/i', $reservationText)) {
+            $stopId = 7;
+        }
         if ($stopId === 12 && preg_match('/santa\s*monica|\bpier\b|\blax\b/i', $reservationText)) {
             $stopId = 13;
         }
