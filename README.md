@@ -32,3 +32,12 @@ Configure the accepted token in the private `stuartplace-config.php` file outsid
 ```
 
 Only store the hash in the website config; the app sends the bearer token at runtime.
+
+## SmugMug trip photos
+
+The California trip photo setting accepts either one SmugMug gallery URL or a parent
+folder URL. When a parent folder is configured, map sync discovers every gallery
+directly inside that folder and imports the geotagged photos from all of them.
+
+The mobile photo uploader keeps working with a parent folder by choosing the
+highest-numbered `Day N` gallery as its upload destination.

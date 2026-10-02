@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/../../auth/bootstrap.php';
 require_once __DIR__ . '/../../auth/db.php';
+require_once __DIR__ . '/../../auth/smugmug.php';
 
 function mobile_json_response(array $payload, int $status = 200): never {
     http_response_code($status);
@@ -34,89 +35,6 @@ function mobile_authenticated_client(): string {
         return $client;
     }
     mobile_json_response(['ok' => false, 'error' => 'Unauthorized'], 401);
-}
-
-function smug_json_get(string $url, string $apiKey): array {
-    $sep = strpos($url, '?') === false ? '?' : '&';
-    $url .= $sep . 'APIKey=' . rawurlencode($apiKey) . '&_accept=application%2Fjson';
-    $ch = curl_init($url);
-    curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 30, CURLOPT_HTTPHEADER => ['Accept: application/json']]);
-    $raw = curl_exec($ch);
-    $http = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    $err = curl_error($ch);
-    curl_close($ch);
-    if ($raw === false || $http < 200 || $http >= 300) {
-        throw new RuntimeException($err ?: 'SmugMug API request failed with HTTP ' . $http);
-    }
-    $json = json_decode($raw, true);
-    if (!is_array($json)) { throw new RuntimeException('SmugMug returned an unreadable API response.'); }
-    return $json;
-}
-
-function smug_find_album_uri($value): ?string {
-    if (is_string($value) && preg_match('~^/api/v2/album/[A-Za-z0-9]+~', $value, $m)) { return $m[0]; }
-    if (is_array($value)) {
-        foreach ($value as $child) {
-            $found = smug_find_album_uri($child);
-            if ($found !== null) { return $found; }
-        }
-    }
-    return null;
-}
-
-function smug_album_uri_from_gallery(string $gallery, string $apiKey): string {
-    $gallery = trim($gallery);
-    if ($gallery === '') { throw new RuntimeException('Save the SmugMug gallery URL first in the website photo settings.'); }
-    if (preg_match('~/api/v2/album/([A-Za-z0-9]+)~', $gallery, $m) || preg_match('~/album/([A-Za-z0-9]+)~', $gallery, $m)) {
-        return '/api/v2/album/' . $m[1];
-    }
-    if (preg_match('~/(?:n-|node/)([A-Za-z0-9]+)~', $gallery, $m)) {
-        $node = smug_json_get('https://api.smugmug.com/api/v2/node/' . rawurlencode($m[1]), $apiKey);
-        $uri = smug_find_album_uri($node);
-        if ($uri !== null) { return $uri; }
-    }
-    $parts = parse_url($gallery);
-    $host = strtolower((string)($parts['host'] ?? ''));
-    $path = (string)($parts['path'] ?? '');
-    $nickname = '';
-    if (preg_match('~^([a-z0-9-]+)\.smugmug\.com$~i', $host, $m)) { $nickname = $m[1]; }
-    elseif (preg_match('~^www\.([a-z0-9-]+)\.smugmug\.com$~i', $host, $m)) { $nickname = $m[1]; }
-    if ($nickname === '' || $path === '') { throw new RuntimeException('Please save the normal SmugMug gallery URL first.'); }
-    $path = preg_replace('~/i-[A-Za-z0-9]+.*$~', '', $path) ?: $path;
-    $path = '/' . trim($path, '/');
-    $lookupBase = 'https://api.smugmug.com/api/v2/user/' . rawurlencode($nickname) . '!urlpathlookup';
-    foreach ([$lookupBase . '?urlpath=' . rawurlencode($path), $lookupBase . '?UrlPath=' . rawurlencode($path)] as $url) {
-        try {
-            $json = smug_json_get($url, $apiKey);
-            $uri = smug_find_album_uri($json);
-            if ($uri !== null) { return $uri; }
-        } catch (Throwable $e) {}
-    }
-    throw new RuntimeException('Could not resolve the configured SmugMug gallery URL.');
-}
-
-function smug_rebuild_trip_photos(PDO $pdo, string $albumUri, string $apiKey, string $createdBy): int {
-    $endpoint = 'https://api.smugmug.com' . $albumUri . '!images?count=500';
-    $json = smug_json_get($endpoint, $apiKey);
-    $images = $json['Response']['AlbumImage'] ?? $json['Response']['AlbumImages'] ?? [];
-    $count = 0;
-    $stmt = $pdo->prepare('INSERT INTO trip_photos (smugmug_key,title,caption,thumb_url,photo_url,latitude,longitude,taken_at,created_by) VALUES (?,?,?,?,?,?,?,?,?) ON DUPLICATE KEY UPDATE title=VALUES(title), caption=VALUES(caption), thumb_url=VALUES(thumb_url), photo_url=VALUES(photo_url), latitude=VALUES(latitude), longitude=VALUES(longitude), taken_at=VALUES(taken_at)');
-    $pdo->beginTransaction();
-    $pdo->exec('DELETE FROM trip_photos');
-    foreach ($images as $img) {
-        $lat = $img['Latitude'] ?? $img['Lat'] ?? null;
-        $lng = $img['Longitude'] ?? $img['Lon'] ?? null;
-        if ($lat === null || $lng === null || $lat === '' || $lng === '') { continue; }
-        $key = $img['ImageKey'] ?? $img['Key'] ?? md5(json_encode($img));
-        $thumb = trim((string)($img['ThumbnailUrl'] ?? $img['ThumbUrl'] ?? ''));
-        $photoUrl = trim((string)($img['WebUri'] ?? $img['ArchivedUri'] ?? ''));
-        if ($thumb === '') { $thumb = $photoUrl; }
-        if ($photoUrl === '' || $thumb === '') { continue; }
-        $stmt->execute([$key, $img['Title'] ?? $img['FileName'] ?? 'Trip photo', $img['Caption'] ?? null, $thumb, $photoUrl, (float)$lat, (float)$lng, $img['DateTimeOriginal'] ?? $img['Date'] ?? null, $createdBy]);
-        $count++;
-    }
-    $pdo->commit();
-    return $count;
 }
 
 function oauth_percent_encode(string $value): string {
@@ -192,15 +110,20 @@ if ($accessToken === '' || $accessSecret === '') {
 }
 
 $gallery = (string)$pdo->query('SELECT setting_value FROM app_settings WHERE setting_key = "smugmug_gallery"')->fetchColumn();
-$albumUri = smug_album_uri_from_gallery($gallery, $apiKey);
 if (($_POST['action'] ?? '') === 'rebuild') {
     try {
-        $imported = smug_rebuild_trip_photos($pdo, $albumUri, $apiKey, $caller);
-        mobile_json_response(['ok' => true, 'caller' => $caller, 'rebuilt' => true, 'imported' => $imported]);
+        $sync = smugmug_rebuild_trip_photos($pdo, $gallery, $apiKey, $caller);
+        mobile_json_response(['ok' => true, 'caller' => $caller, 'rebuilt' => true, 'imported' => $sync['imported'], 'albums' => $sync['albums'], 'albumNames' => $sync['albumNames']]);
     } catch (Throwable $e) {
         if ($pdo->inTransaction()) { $pdo->rollBack(); }
         mobile_json_response(['ok' => false, 'error' => $e->getMessage()], 500);
     }
+}
+
+$uploadAlbum = smugmug_upload_album_from_gallery($gallery, $apiKey);
+$albumUri = (string)($uploadAlbum['Uri'] ?? '');
+if ($albumUri === '') {
+    mobile_json_response(['ok' => false, 'error' => 'Could not choose a SmugMug day gallery for upload.'], 500);
 }
 
 if (!isset($_FILES['photo']) || !is_uploaded_file($_FILES['photo']['tmp_name'])) {
@@ -275,7 +198,8 @@ $thumbURL = $photoURL !== '' ? $photoURL : $gallery;
 $imported = null;
 $syncWarning = null;
 try {
-    $imported = smug_rebuild_trip_photos($pdo, $albumUri, $apiKey, $caller);
+    $sync = smugmug_rebuild_trip_photos($pdo, $gallery, $apiKey, $caller);
+    $imported = $sync['imported'];
 } catch (Throwable $e) {
     if ($pdo->inTransaction()) { $pdo->rollBack(); }
     $syncWarning = $e->getMessage();
