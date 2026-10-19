@@ -1,0 +1,97 @@
+[
+  {
+    "id": "boston",
+    "name": "Boston, Massachusetts",
+    "lat": 42.3601,
+    "lng": -71.0589,
+    "nights": 2,
+    "date": "2027-10-03",
+    "dates": "Oct 3\u20134",
+    "activities": [
+      "Boston Common and Public Garden; North End dinner.",
+      "Trolley tour, Freedom Trail highlights, and Faneuil Hall.",
+      "Old North Church or a Duck Tour; choose short outings with seated breaks."
+    ]
+  },
+  {
+    "id": "woodstock",
+    "name": "Woodstock, Vermont",
+    "lat": 43.6242,
+    "lng": -72.5184,
+    "nights": 1,
+    "date": "2027-10-05",
+    "dates": "Oct 5",
+    "activities": [
+      "Drive to Woodstock and explore village shops.",
+      "Covered bridge viewpoints and a relaxed afternoon in town."
+    ]
+  },
+  {
+    "id": "stowe",
+    "name": "Stowe, Vermont",
+    "lat": 44.4654,
+    "lng": -72.7023,
+    "nights": 2,
+    "date": "2027-10-06",
+    "dates": "Oct 6\u20137",
+    "activities": [
+      "Route 100 scenic drive and Stowe village.",
+      "Gondola SkyRide and Smugglers\u2019 Notch, subject to seasonal operation.",
+      "Use scenic pullouts and short walks rather than long hikes."
+    ]
+  },
+  {
+    "id": "north-conway",
+    "name": "North Conway, New Hampshire",
+    "lat": 44.0537,
+    "lng": -71.1284,
+    "nights": 2,
+    "date": "2027-10-08",
+    "dates": "Oct 8\u20139",
+    "activities": [
+      "Franconia Notch and Kancamagus Highway scenic detour.",
+      "Conway Scenic Railroad and North Conway village.",
+      "Allow time for overlooks and foliage traffic."
+    ]
+  },
+  {
+    "id": "bar-harbor",
+    "name": "Bar Harbor, Maine",
+    "lat": 44.3876,
+    "lng": -68.2039,
+    "nights": 3,
+    "date": "2027-10-10",
+    "dates": "Oct 10\u201312",
+    "activities": [
+      "Bar Harbor waterfront and village.",
+      "Acadia scenic drives, ocean overlooks, and short optional walks.",
+      "Keep one flexible day for weather and a relaxed pace."
+    ]
+  },
+  {
+    "id": "portland",
+    "name": "Portland, Maine",
+    "lat": 43.6591,
+    "lng": -70.2553,
+    "nights": 1,
+    "date": "2027-10-13",
+    "dates": "Oct 13",
+    "activities": [
+      "Drive down the Maine coast.",
+      "Old Port and a relaxed waterfront dinner."
+    ]
+  },
+  {
+    "id": "return-boston",
+    "name": "Boston \u00b7 fly home",
+    "lat": 42.3601,
+    "lng": -71.0589,
+    "nights": 0,
+    "date": "2027-10-14",
+    "dates": "Oct 14",
+    "activities": [
+      "Return the rental car and fly home.",
+      "Leave a generous buffer for Boston traffic and airport check-in."
+    ]
+  }
+]
