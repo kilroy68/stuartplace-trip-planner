@@ -29,6 +29,7 @@ california_page_text = (root/'california-trip/index.php').read_text()
 future_page_text = (root/'future-trips/index.php').read_text()
 auth_text = (root/'auth/auth.php').read_text()
 smugmug_connect_text = (root/'california-trip/api/smugmug-connect.php').read_text()
+mobile_upload_text = (root/'california-trip/api/upload-photo.php').read_text()
 home_text = (root/'index.php').read_text()
 assert 'auth_is_admin()' in api_text
 assert 'hash_equals(auth_csrf_token()' in api_text
@@ -43,4 +44,15 @@ assert "headers:{'Content-Type':'application/json'}" in california_page_text
 assert '$canEdit=auth_is_admin();' in future_page_text and '<?php if ($canEdit): ?>' in future_page_text
 assert "auth_find_allowed_user((string)$u['email'])" in auth_text
 assert "$action = $_POST['action'] ?? '';" in smugmug_connect_text and 'auth_verify_csrf();' in smugmug_connect_text
+write_guards = {
+    'api/travel.php': ['auth_is_admin()', 'hash_equals(auth_csrf_token()'],
+    'auth/api.php': ['api_require_admin();', "strpos($contentType, 'application/json') !== 0"],
+    'auth/users.php': ['auth_require_admin();', 'auth_verify_csrf();'],
+    'california-trip/api/smugmug-connect.php': ['auth_require_admin();', 'auth_verify_csrf();'],
+    'california-trip/api/upload-photo.php': ['mobile_authenticated_admin_client()', "REQUEST_METHOD'] ?? 'GET') !== 'POST'"],
+}
+for path, guards in write_guards.items():
+    source = (root/path).read_text()
+    assert all(guard in source for guard in guards), (path, guards)
+assert 'administrator-equivalent credential' in mobile_upload_text
 print('PASS: 50 accessible state paths, together-only tracking, future-trip CRUD and priority controls, 11 nights, 7 stops, continuous road geometry near every stop, authentication guards.')

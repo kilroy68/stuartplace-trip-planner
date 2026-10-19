@@ -27,7 +27,7 @@ function mobile_token_matches(string $provided, string $configured): bool {
     return hash_equals($configured, $provided);
 }
 
-function mobile_authenticated_client(): string {
+function mobile_authenticated_admin_client(): string {
     $client = trim((string)($_SERVER['HTTP_X_STUARTPLACE_CLIENT'] ?? ''));
     $token = mobile_get_authorization_bearer();
     $tokens = auth_config()['mobile_api_tokens'] ?? [];
@@ -90,7 +90,8 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {
     mobile_json_response(['ok' => false, 'error' => 'Method not allowed'], 405);
 }
 
-$caller = mobile_authenticated_client();
+// A configured mobile upload token is an administrator-equivalent credential.
+$caller = mobile_authenticated_admin_client();
 $config = auth_config();
 $apiKey = trim((string)($config['smugmug_api_key'] ?? ''));
 $apiSecret = trim((string)($config['smugmug_api_secret'] ?? ''));
