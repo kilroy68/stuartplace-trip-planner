@@ -1,0 +1,10 @@
+<?php
+header('Cache-Control: no-store');
+require_once __DIR__.'/../auth/auth.php';
+auth_require_login();
+$currentUser=auth_current_user();
+?>
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>New England 2027 • Stuart Place</title><link rel="icon" href="/favicon.svg"><link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"><link rel="stylesheet" href="/assets/travel.css"></head><body>
+<header class="topbar"><a class="brand" href="/">← STUART PLACE</a><nav class="account" aria-label="Account"><a href="/california-trip/">California planner</a><span><?=auth_h($currentUser['email'] ?? '')?></span><a href="/auth/logout.php">Sign out</a></nav></header>
+<main class="planner"><aside class="sidebar"><div class="eyebrow">David & Angela · Fall 2027</div><h1>New England<br>in autumn.</h1><p class="muted">Scenic roads, welcoming towns, and time to enjoy the view.</p><div class="stats"><span>Oct 3–14</span><span>12 days · 11 nights</span><span>4 states</span></div><p class="muted">Tentative itinerary · reservations are not booked. Scenic drives and short, optional walks keep the pace comfortable.</p><div class="toolbar"><button id="fit-route" type="button">Show whole route</button><button id="print" type="button">Print itinerary</button></div><label for="search">Find a town or activity</label><input id="search" type="search" placeholder="Search this trip" style="width:100%;padding:10px;border:1px solid #d5cdbf;border-radius:10px"><p id="status" role="status" aria-live="polite">Loading planner…</p><div id="stops"></div><p id="empty" hidden>No matching stops. Try another search.</p><p class="muted">Seasonal hours, tickets, foliage, and road conditions need checking closer to departure.</p></aside><section class="map-area" aria-label="Interactive New England driving map"><div id="route-map"></div><div class="map-message" id="map-message">Loading road route…</div></section></main>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script><script src="planner.js" defer></script></body></html>
