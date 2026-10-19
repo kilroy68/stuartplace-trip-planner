@@ -1,1 +1,55 @@
-m«ëˆ§½©buªàºg§µ«­‡÷(ø {¦¦W©†•,j›jÇºà7an{¦Š)ßŠW¨¢ë_ŠW›n·š‘ºŞjG§r‡^v‹­¦ën¦)í¢X§zÊ•éà¶î˜7]yÊy×œ¡×¢›­†¥¥Ø¬¦V²¶¬™ë,j¢Šzn¶)éº×â•ç^}«¥µú+²×bŠ.¶›­¢ëiº×â•ç^}«¥µú+²×hº
+<?php
+/**
+ * Copy this file to auth/config.php on Hostinger and fill in real values.
+ * Do NOT commit auth/config.php; it is ignored by git.
+ */
+return [
+    // Public site origin, no trailing slash.
+    'site_url' => 'https://www.stuartplace.net',
+
+    // Create these in Google Cloud Console > APIs & Services > Credentials.
+    // Authorized redirect URI must be: https://www.stuartplace.net/auth/callback.php
+    'google_client_id' => 'YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com',
+    'google_client_secret' => 'YOUR_GOOGLE_CLIENT_SECRET',
+
+    // Hostinger MySQL database settings.
+    'db_host' => 'localhost',
+    'db_name' => 'YOUR_DATABASE_NAME',
+    'db_user' => 'YOUR_DATABASE_USER',
+    'db_pass' => 'YOUR_DATABASE_PASSWORD',
+    'db_charset' => 'utf8mb4',
+
+    // These accounts are always allowed and are seeded/kept active.
+    'initial_users' => [
+        'david.c.stuart@gmail.com' => 'admin',
+        'angelarx@gmail.com' => 'admin',
+    ],
+
+    // Change this to a long random string before deploying.
+    'session_secret' => 'CHANGE_ME_TO_A_LONG_RANDOM_SECRET',
+
+    // Keep users logged in for 30 days. Sessions are stored outside public_html by default
+    // in ../stuartplace-sessions so shared-host PHP garbage collection does not log users out early.
+    // A separate secure remember-me token is also stored in MySQL so login survives PHP session cleanup.
+    'session_lifetime_days' => 30,
+    'session_save_path' => '',
+
+    // Mobile app API tokens. These are administrator-equivalent credentials:
+    // they can read trip data and upload/sync photos. The iOS app sends
+    // X-Stuartplace-Client plus Authorization: Bearer <token>; store only hashes here.
+    // Generate a token with: php -r 'echo bin2hex(random_bytes(32)), PHP_EOL;'
+    'mobile_api_tokens' => [
+        'california-trip-ios' => 'sha256:REPLACE_WITH_SHA256_OF_APP_TOKEN',
+    ],
+
+    // Required for SmugMug photo sync/upload.
+    // Leave blank until you are ready to connect a SmugMug trip gallery.
+    'smugmug_api_key' => '',
+    'smugmug_api_secret' => '',
+    // Upload authorization is normally created by signing in as an admin and opening:
+    // https://www.stuartplace.net/california-trip/api/smugmug-connect.php
+    // Optional fallback: paste OAuth 1.0a access credentials here instead of storing them in MySQL.
+    'smugmug_access_token' => '',
+    'smugmug_access_token_secret' => '',
+    // Paste the API URI or web URL for the trip gallery in the admin photo settings.
+];
