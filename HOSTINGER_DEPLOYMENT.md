@@ -4,7 +4,8 @@
 
 - `/`: private, interactive 50-state map tracking only states David and Angela have visited together, with links to both planners. On first load, any state marked for both travelers in the earlier tracker is carried into the shared list.
 - `/new-england-trip/`: October 3–14, 2027 tentative itinerary (11 nights), clickable map, search, driving links, print, and shared per-stop lodging/confirmation/cost/notes.
-- `/api/travel.php`: existing Google session and admin role; mutations require POST + session CSRF token. Data is stored in separate `travel_visits` and `travel_plans` tables, created automatically in the configured MySQL database.
+- `/future-trips/`: shared, prioritized list of possible trips with title, description, add, remove, and reorder controls.
+- `/api/travel.php`: existing Google session and admin role; mutations require POST + session CSRF token. Data is stored in separate `travel_visits`, `travel_plans`, and `travel_future_trips` tables, created automatically in the configured MySQL database.
 - California, OAuth configuration loader, callback, allowed users, session cookies, and existing database tables are unchanged.
 
 The map route uses bundled road geometry between overnight towns. It is an overview, not live traffic or turn-by-turn navigation. Scenic detours have separate direction links. The map needs the Leaflet CDN and OpenStreetMap tiles; the itinerary and locally bundled state map remain available without those services. Viewing requires login; admins edit shared data.

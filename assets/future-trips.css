@@ -1,0 +1,40 @@
+.future-shell{max-width:980px}
+.future-heading{display:flex;align-items:center;justify-content:space-between;gap:30px;margin-bottom:28px}
+.future-heading h1{margin-bottom:10px}
+.future-heading p{font-size:18px;max-width:680px;margin:0}
+.idea-mark{width:96px;height:96px;border-radius:50%;display:grid;place-items:center;background:#dcebed;color:var(--teal);font-size:48px;flex:0 0 auto}
+.future-editor{margin-bottom:38px}
+.future-editor h2{margin-top:0}
+.future-editor form{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.5fr) auto;gap:16px;align-items:end}
+.future-editor label{font-size:13px;font-weight:700}
+.future-editor input,.future-editor textarea{display:block;width:100%;margin-top:6px;border:1px solid #d5cdbf;border-radius:10px;padding:11px;background:#fffefb}
+.future-editor textarea{min-height:72px;resize:vertical}
+.future-editor button{white-space:nowrap;margin-bottom:1px}
+.future-list-section{margin-top:10px}
+.future-list-heading{display:flex;align-items:end;justify-content:space-between;gap:20px;margin-bottom:14px}
+.future-list-heading h2{font-size:34px;margin:5px 0 0}
+.future-list{list-style:none;padding:0;margin:0;display:grid;gap:14px}
+.future-card{display:grid;grid-template-columns:54px minmax(0,1fr) auto;gap:18px;align-items:center}
+.priority-number{width:48px;height:48px;border-radius:50%;display:grid;place-items:center;background:#e3f0f1;color:var(--teal);font-size:20px;font-weight:800}
+.future-copy h3{font-size:23px;margin:0 0 6px}
+.future-copy p{white-space:pre-wrap;margin:0;color:var(--muted)}
+.future-actions{display:flex;gap:7px;align-items:center}
+.future-actions button{min-width:44px;padding:8px 12px}
+.future-actions .danger{color:#8d2f20;border-color:#d9b9b2}
+.future-actions .danger:hover{border-color:#8d2f20}
+.empty{text-align:center;color:var(--muted)}
+.future-list-section #status{margin:14px 4px}
+@media(max-width:800px){
+  .future-editor form{grid-template-columns:1fr}
+  .future-editor button{justify-self:start}
+  .future-card{grid-template-columns:44px minmax(0,1fr)}
+  .priority-number{width:40px;height:40px}
+  .future-actions{grid-column:2}
+  .idea-mark{width:70px;height:70px;font-size:34px}
+}
+@media(max-width:520px){
+  .future-heading{align-items:flex-start}
+  .idea-mark{display:none}
+  .future-card{padding:18px;gap:12px}
+  .future-copy h3{font-size:20px}
+}

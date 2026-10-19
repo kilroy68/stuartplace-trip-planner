@@ -20,7 +20,7 @@ points = route['coordinates']
 for s in stops:
     assert min(math.hypot(x-s['lng'], y-s['lat']) for x,y in points) < 0.01, s['name']
 assert max(math.hypot(a[0]-b[0],a[1]-b[1]) for a,b in zip(points,points[1:])) < .1
-for p in ['index.php','new-england-trip/index.php','api/travel.php']:
+for p in ['index.php','new-england-trip/index.php','future-trips/index.php','api/travel.php']:
     text=(root/p).read_text()
     assert 'auth.php' in text
 api_text = (root/'api/travel.php').read_text()
@@ -29,4 +29,6 @@ assert 'auth_is_admin()' in api_text
 assert 'hash_equals(auth_csrf_token()' in api_text
 assert "person='Together'" in api_text and "$in['person']" not in api_text
 assert "Where we've been together" in home_text and 'id="person"' not in home_text
-print('PASS: 50 accessible state paths, together-only tracking, 11 nights, 7 stops, continuous road geometry near every stop, authentication guards.')
+assert '/future-trips/' in home_text
+assert all(action in api_text for action in ['future_trip_add','future_trip_delete','future_trip_reorder'])
+print('PASS: 50 accessible state paths, together-only tracking, future-trip CRUD and priority controls, 11 nights, 7 stops, continuous road geometry near every stop, authentication guards.')
