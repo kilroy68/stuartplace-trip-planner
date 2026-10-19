@@ -2,7 +2,7 @@
 
 ## Release contents
 
-- `/`: private, interactive 50-state map with separate David and Angela histories and links to both planners. No states are assumed visited.
+- `/`: private, interactive 50-state map tracking only states David and Angela have visited together, with links to both planners. On first load, any state marked for both travelers in the earlier tracker is carried into the shared list.
 - `/new-england-trip/`: October 3–14, 2027 tentative itinerary (11 nights), clickable map, search, driving links, print, and shared per-stop lodging/confirmation/cost/notes.
 - `/api/travel.php`: existing Google session and admin role; mutations require POST + session CSRF token. Data is stored in separate `travel_visits` and `travel_plans` tables, created automatically in the configured MySQL database.
 - California, OAuth configuration loader, callback, allowed users, session cookies, and existing database tables are unchanged.
@@ -17,7 +17,7 @@ Before deploying through the existing Hostinger Git integration, verify the priv
 
 Use the existing repository and PHP hosting document root; do not switch this PHP project to static hosting. Deploy the reviewed commit using the existing Hostinger integration. The database account already performs schema creation for authentication; it must also be able to create the two new tables. Back up the existing database and any server-only files before replacing the document root.
 
-Release checks are in `.github/workflows/check-travel.yml`. After deployment, verify existing Google login, homepage map save/reload from another session, New England stop save/reload, non-admin read-only access, and the unchanged California planner. Initial state history is intentionally empty. Revert the code commit to roll back; the separate new tables can remain in place without changing California data.
+Release checks are in `.github/workflows/check-travel.yml`. After deployment, verify existing Google login, homepage map save/reload from another session, New England stop save/reload, non-admin read-only access, and the unchanged California planner. Revert the code commit to roll back; the separate travel tables can remain in place without changing California data.
 
 ## Verification limits
 

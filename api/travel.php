@@ -8,6 +8,11 @@ try {
     $pdo = auth_db();
     $pdo->exec("CREATE TABLE IF NOT EXISTS travel_visits (person VARCHAR(10) NOT NULL, state VARCHAR(30) NOT NULL, visited TINYINT NOT NULL DEFAULT 0, updated_by VARCHAR(190), PRIMARY KEY(person,state)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
     $pdo->exec("CREATE TABLE IF NOT EXISTS travel_plans (stop_id VARCHAR(30) PRIMARY KEY, details TEXT NOT NULL, updated_by VARCHAR(190)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+    $legacyTogether = $pdo->query("SELECT d.state FROM travel_visits d INNER JOIN travel_visits a ON a.state=d.state WHERE d.person='David' AND a.person='Angela' AND d.visited=1 AND a.visited=1")->fetchAll(PDO::FETCH_COLUMN);
+    if ($legacyTogether) {
+        $migrate = $pdo->prepare("INSERT IGNORE INTO travel_visits (person,state,visited,updated_by) VALUES ('Together',?,1,NULL)");
+        foreach ($legacyTogether as $state) $migrate->execute([$state]);
+    }
     if ($method === 'POST') {
         if (!auth_is_admin()) auth_json_response(['ok'=>false,'error'=>'Admin access required.'],403);
         $in = json_decode(file_get_contents('php://input'),true);
@@ -16,8 +21,8 @@ try {
         $email = auth_current_user()['email'];
         if (($in['action'] ?? '') === 'visit') {
             $states = json_decode(file_get_contents(__DIR__.'/../assets/states.json'),true);
-            if (!in_array($in['person'] ?? '', ['David','Angela'],true) || !in_array($in['state'] ?? '',$states,true) || !is_bool($in['visited'] ?? null)) auth_json_response(['ok'=>false,'error'=>'Invalid state selection.'],400);
-            $pdo->prepare('INSERT INTO travel_visits (person,state,visited,updated_by) VALUES (?,?,?,?) ON DUPLICATE KEY UPDATE visited=VALUES(visited),updated_by=VALUES(updated_by)')->execute([$in['person'],$in['state'],(int)$in['visited'],$email]);
+            if (!in_array($in['state'] ?? '',$states,true) || !is_bool($in['visited'] ?? null)) auth_json_response(['ok'=>false,'error'=>'Invalid state selection.'],400);
+            $pdo->prepare("INSERT INTO travel_visits (person,state,visited,updated_by) VALUES ('Together',?,?,?) ON DUPLICATE KEY UPDATE visited=VALUES(visited),updated_by=VALUES(updated_by)")->execute([$in['state'],(int)$in['visited'],$email]);
         } elseif (($in['action'] ?? '') === 'plan') {
             if (!in_array($in['stop_id'] ?? '', ['boston','woodstock','stowe','north-conway','bar-harbor','portland','return-boston'],true)) auth_json_response(['ok'=>false,'error'=>'Invalid stop.'],400);
             $details=[];
@@ -31,8 +36,7 @@ try {
         } else auth_json_response(['ok'=>false,'error'=>'Unknown action.'],400);
         auth_json_response(['ok'=>true]);
     }
-    $visits=['David'=>[],'Angela'=>[]];
-    foreach ($pdo->query('SELECT person,state FROM travel_visits WHERE visited=1')->fetchAll() as $row) if (isset($visits[$row['person']])) $visits[$row['person']][]=$row['state'];
+    $visits=$pdo->query("SELECT state FROM travel_visits WHERE person='Together' AND visited=1 ORDER BY state")->fetchAll(PDO::FETCH_COLUMN);
     $plans=[];
     foreach ($pdo->query('SELECT stop_id,details FROM travel_plans')->fetchAll() as $row) $plans[$row['stop_id']]=json_decode($row['details'],true);
     auth_json_response(['ok'=>true,'visits'=>$visits,'plans'=>$plans,'canEdit'=>auth_is_admin(),'csrf'=>auth_csrf_token()]);
