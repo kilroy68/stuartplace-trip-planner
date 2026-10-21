@@ -31,6 +31,9 @@ auth_text = (root/'auth/auth.php').read_text()
 smugmug_connect_text = (root/'california-trip/api/smugmug-connect.php').read_text()
 mobile_upload_text = (root/'california-trip/api/upload-photo.php').read_text()
 home_text = (root/'index.php').read_text()
+new_england_page_text = (root/'new-england-trip/index.php').read_text()
+new_england_map_text = (root/'new-england-trip/planner.js').read_text()
+new_england_map_css = (root/'new-england-trip/planner.css').read_text()
 assert 'auth_is_admin()' in api_text
 assert 'hash_equals(auth_csrf_token()' in api_text
 assert "person='Together'" in api_text and "$in['person']" not in api_text
@@ -44,6 +47,9 @@ assert "headers:{'Content-Type':'application/json'}" in california_page_text
 assert '$canEdit=auth_is_admin();' in future_page_text and '<?php if ($canEdit): ?>' in future_page_text
 assert "auth_find_allowed_user((string)$u['email'])" in auth_text
 assert "$action = $_POST['action'] ?? '';" in smugmug_connect_text and 'auth_verify_csrf();' in smugmug_connect_text
+assert all(control in new_england_page_text for control in ['id="style-select"', 'id="sidebar-toggle"', 'class="map-legend"'])
+assert all(behavior in new_england_map_text for behavior in ['mapboxToken', 'map.flyTo', 'splitRoute', "position:'bottomleft'", 'sidebar-collapsed'])
+assert all(style in new_england_map_css for style in ['.map-card', '.map-legend', '.sidebar-collapsed', '.leaflet-popup-content'])
 write_guards = {
     'api/travel.php': ['auth_is_admin()', 'hash_equals(auth_csrf_token()'],
     'auth/api.php': ['api_require_admin();', "strpos($contentType, 'application/json') !== 0"],
@@ -55,4 +61,4 @@ for path, guards in write_guards.items():
     source = (root/path).read_text()
     assert all(guard in source for guard in guards), (path, guards)
 assert 'administrator-equivalent credential' in mobile_upload_text
-print('PASS: 50 accessible state paths, together-only tracking, future-trip CRUD and priority controls, 11 nights, 7 stops, continuous road geometry near every stop, authentication guards.')
+print('PASS: 50 accessible state paths, together-only tracking, future-trip CRUD and priority controls, 11 nights, 7 stops, continuous road geometry near every stop, California-style New England map controls, authentication guards.')
