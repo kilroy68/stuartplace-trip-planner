@@ -54,6 +54,7 @@ async function initMap(){
   try{
     if(typeof L==='undefined')throw Error('Map library unavailable');
     map=L.map('route-map',{scrollWheelZoom:true,preferCanvas:true,zoomControl:false}).setView([43.5,-70.9],6);
+    map.scrollWheelZoom.enable();
     L.control.zoom({position:'bottomleft'}).addTo(map);setMapStyle(document.querySelector('#style-select').value);
     const response=await fetch('route.json');if(!response.ok)throw Error('Route unavailable');const geo=await response.json();const coords=geo.geometry?.coordinates;
     if(!Array.isArray(coords)||coords.length<2)throw Error('Route unavailable');

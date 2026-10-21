@@ -49,6 +49,8 @@ assert "auth_find_allowed_user((string)$u['email'])" in auth_text
 assert "$action = $_POST['action'] ?? '';" in smugmug_connect_text and 'auth_verify_csrf();' in smugmug_connect_text
 assert all(control in new_england_page_text for control in ['id="style-select"', 'id="sidebar-toggle"', 'class="map-legend"'])
 assert all(behavior in new_england_map_text for behavior in ['mapboxToken', 'map.flyTo', 'splitRoute', "position:'bottomleft'", 'scrollWheelZoom:true', 'sidebar-collapsed'])
+assert 'map.scrollWheelZoom.enable()' in new_england_map_text
+assert 'planner.js?v=3' in new_england_page_text
 assert all(style in new_england_map_css for style in ['.map-card', '.map-legend', '.sidebar-collapsed', '.leaflet-popup-content'])
 write_guards = {
     'api/travel.php': ['auth_is_admin()', 'hash_equals(auth_csrf_token()'],
